@@ -2,9 +2,15 @@ import json
 import uuid
 from datetime import datetime
 import functions_framework
+from auth_utils import validate_authentication
 
 @functions_framework.http
 def goodbye(request):
+    # 1. Authentication check
+    auth_error = validate_authentication(request)
+    if auth_error:
+        return auth_error
+    
     request_json = request.get_json(silent=True) or {}
     
     trace_id = request_json.get("traceId", str(uuid.uuid4()))
