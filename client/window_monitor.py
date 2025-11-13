@@ -1,54 +1,56 @@
 #!/usr/bin/env python3
-import time
 import os
-import hashlib
-from datetime import datetime
-import pyautogui
-import pytesseract
-from PIL import Image
+import argparse
 
-class WindowMonitor:
-    def __init__(self, output_dir="screenshots"):
-        self.output_dir = output_dir
-        self.last_text_hash = None
-        os.makedirs(output_dir, exist_ok=True)
-        pyautogui.FAILSAFE = True
-    
-    def capture_screen(self):
-        return pyautogui.screenshot()
-    
-    def extract_text(self, image):
-        try:
-            return pytesseract.image_to_string(image).strip()
-        except:
-            return ""
-    
-    def text_hash(self, text):
-        return hashlib.md5(text.encode()).hexdigest()
-    
-    def save_image(self, image):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"capture_{timestamp}.png"
-        filepath = os.path.join(self.output_dir, filename)
-        image.save(filepath)
-        print(f"Saved: {filepath}")
-    
-    def run(self):
-        print("Starting window monitor... Press Ctrl+C to stop")
-        try:
-            while True:
-                screenshot = self.capture_screen()
-                text = self.extract_text(screenshot)
-                current_hash = self.text_hash(text)
-                
-                if self.last_text_hash != current_hash:
-                    self.save_image(screenshot)
-                    self.last_text_hash = current_hash
-                
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\nMonitoring stopped")
+from monitor.capture import ScreenCapture
+from monitor.ocr import OcrEngine
+from monitor.core import MonitorController
+from monitor.gui import run_preview
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Monitor screen text changes and save screenshots."
+    )
+    parser.add_argument("--preview", action="store_true", help="Show GUI preview")
+    parser.add_argument("--headless", action="store_true", help="Force console mode")
+    parser.add_argument(
+        "--interval", type=float, default=1.0, help="Capture interval in seconds (default: 1.0)"
+    )
+    parser.add_argument(
+        "--lang", type=str, default=None, help="Tesseract language code (e.g., 'eng', 'chi_sim')"
+    )
+    parser.add_argument(
+        "--output", type=str, default="screenshots", help="Output directory for saved images"
+    )
+    parser.add_argument(
+        "--monitor", type=int, default=None, help="Monitor index to capture (mss index)"
+    )
+    parser.add_argument(
+        "--tesseract-cmd",
+        type=str,
+        default=(r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe" if os.name == "nt" else None),
+        help=(
+            "Path to tesseract executable. On Windows, defaults to "
+            r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+        ),
+    )
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
-    monitor = WindowMonitor()
-    monitor.run()
+    args = parse_args()
+    tesseract_cmd = args.tesseract_cmd
+    ocr = OcrEngine(tesseract_cmd=tesseract_cmd, lang=args.lang)
+    capture = ScreenCapture(monitor_index=args.monitor)
+    controller = MonitorController(
+        output_dir=args.output,
+        interval=args.interval,
+        capture=capture,
+        ocr=ocr,
+    )
+    use_preview = args.preview or (os.name == "nt" and not args.headless)
+    if use_preview:
+        run_preview(controller)
+    else:
+        controller.run_headless()

@@ -7,3 +7,6 @@ pytesseract>=0.3.13
 # Screenshot/input utilities
 pyautogui==0.9.54
 
+# Multi-monitor capture helper
+mss>=9.0.1
+
