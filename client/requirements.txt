@@ -1,4 +1,9 @@
-pillow==10.1.0
-pytesseract==0.3.10
+pillow==10.1.0; python_version < "3.13"
+pillow>=11.0.0; python_version >= "3.13"
+
+# OCR wrapper (use version compatible with Python 3.12+)
+pytesseract>=0.3.13
+
+# Screenshot/input utilities
 pyautogui==0.9.54
-opencv-python==4.8.1.78
+
