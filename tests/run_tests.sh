@@ -42,7 +42,7 @@ pip install -r requirements.txt
 
 # Set environment variables and run tests
 export API_URL="https://$API_URL"
-export ChatSecretKey="${ChatSecretKey:-test_secret_key}"
-export ChatAccessKey="${ChatAccessKey:-test_access_key}"
+export XiaoiceChatSecretKey="${XiaoiceChatSecretKey:-test_secret_key}"
+export XiaoiceChatAccessKey="${XiaoiceChatAccessKey:-test_access_key}"
 
 python test_functions.py "$@"

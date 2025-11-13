@@ -2,10 +2,11 @@ import json
 import uuid
 import functions_framework
 from auth_utils import validate_authentication
+from firestore_utils import get_config
 
 @functions_framework.http
 def recquestions(request):
-    # 1. Authentication check
+    # Authentication check
     auth_error = validate_authentication(request)
     if auth_error:
         return auth_error
@@ -15,21 +16,11 @@ def recquestions(request):
     trace_id = request_json.get("traceId", str(uuid.uuid4()))
     language_code = request_json.get("languageCode", "en")
     
-    recommended_questions = {
-        "en": [
-            "What can you help me with?",
-            "How does this work?",
-            "Can you explain more about this topic?"
-        ],
-        "zh": [
-            "你能帮我做什么？",
-            "这是如何工作的？",
-            "你能详细解释一下这个话题吗？"
-        ]
-    }
+    config = get_config()
+    recommended_questions = config.get("recommended_questions", {})
     
     response = {
-        "data": recommended_questions.get(language_code, recommended_questions["en"]),
+        "data": recommended_questions.get(language_code, recommended_questions.get("en", [])),
         "traceId": trace_id
     }
     

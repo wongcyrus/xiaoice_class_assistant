@@ -96,3 +96,25 @@ paths:
       responses:
         200:
           description: Successful response
+  /config:
+    post:
+      summary: Configuration endpoint
+      operationId: config
+      x-google-backend:
+        address: ${CONFIG}
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              welcome_messages:
+                type: object
+              goodbye_messages:
+                type: object
+              recommended_questions:
+                type: object
+      responses:
+        200:
+          description: Successful response

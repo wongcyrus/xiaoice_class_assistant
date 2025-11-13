@@ -3,10 +3,10 @@ import uuid
 from datetime import datetime
 import functions_framework
 from auth_utils import validate_authentication
+from firestore_utils import get_config
 
 @functions_framework.http
 def welcome(request):
-    # 1. Authentication check
     auth_error = validate_authentication(request)
     if auth_error:
         return auth_error
@@ -17,16 +17,14 @@ def welcome(request):
     session_id = request_json.get("sessionId", str(uuid.uuid4()))
     language_code = request_json.get("languageCode", "en")
     
-    welcome_messages = {
-        "en": "Welcome! How can I help you today?",
-        "zh": "欢迎！今天我能为您做些什么？"
-    }
+    config = get_config()
+    welcome_messages = config.get("welcome_messages", {})
     
     response = {
         "id": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "traceId": trace_id,
         "sessionId": session_id,
-        "replyText": welcome_messages.get(language_code, welcome_messages["en"]),
+        "replyText": welcome_messages.get(language_code, welcome_messages.get("en", "Welcome!")),
         "replyType": "Welcome",
         "timestamp": datetime.now().timestamp(),
         "extra": request_json.get("extra", {})

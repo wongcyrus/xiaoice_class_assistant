@@ -13,11 +13,10 @@ import requests
 
 
 def calculate_signature(body_string: str, secret_key: str, timestamp: str) -> str:
-    """Calculate signature for authentication"""
-    string_to_checksum = body_string + secret_key + timestamp
-    sha512 = hashlib.sha512()
-    sha512.update(string_to_checksum.encode("utf-8"))
-    return sha512.hexdigest().replace("-", "")
+    """Calculate signature for authentication using v2 algorithm"""
+    params = {"bodyString": body_string, "secretKey": secret_key, "timestamp": timestamp}
+    signature_string = "&".join([f"{k}={v}" for k, v in sorted(params.items())])
+    return hashlib.sha512(signature_string.encode("utf-8")).hexdigest().upper()
 
 
 def test_talk_stream():
@@ -27,8 +26,8 @@ def test_talk_stream():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/talk"
     
-    secret_key = os.getenv("ChatSecretKey", "test_secret_key")
-    access_key = os.getenv("ChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     session_id = str(uuid.uuid4())
@@ -38,6 +37,7 @@ def test_talk_stream():
         "askText": "Hello, can you help me with the class?",
         "sessionId": session_id,
         "traceId": trace_id,
+        "languageCode": "en",
         "extra": {}
     }
     
@@ -54,7 +54,7 @@ def test_talk_stream():
     try:
         response = requests.post(
             f"{base_url}{endpoint}",
-            json=payload,
+            data=body_string,
             headers=headers,
             stream=True,
             timeout=30
@@ -80,8 +80,8 @@ def test_welcome():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/welcome"
     
-    secret_key = os.getenv("ChatSecretKey", "test_secret_key")
-    access_key = os.getenv("ChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     session_id = str(uuid.uuid4())
@@ -106,7 +106,7 @@ def test_welcome():
     try:
         response = requests.post(
             f"{base_url}{endpoint}",
-            json=payload,
+            data=body_string,
             headers=headers,
             timeout=10
         )
@@ -125,8 +125,8 @@ def test_goodbye():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/goodbye"
     
-    secret_key = os.getenv("ChatSecretKey", "test_secret_key")
-    access_key = os.getenv("ChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     session_id = str(uuid.uuid4())
@@ -151,7 +151,7 @@ def test_goodbye():
     try:
         response = requests.post(
             f"{base_url}{endpoint}",
-            json=payload,
+            data=body_string,  # Use data instead of json
             headers=headers,
             timeout=10
         )
@@ -170,8 +170,8 @@ def test_recquestions():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/recquestions"
     
-    secret_key = os.getenv("ChatSecretKey", "test_secret_key")
-    access_key = os.getenv("ChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     trace_id = str(uuid.uuid4())
@@ -194,7 +194,71 @@ def test_recquestions():
     try:
         response = requests.post(
             f"{base_url}{endpoint}",
-            json=payload,
+            data=body_string,
+            headers=headers,
+            timeout=10
+        )
+        
+        print(f"Status: {response.status_code}")
+        print(f"Response: {response.text}")
+            
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+def test_config():
+    """Test the /config endpoint"""
+    print("Testing /config endpoint...")
+    
+    base_url = os.getenv("API_URL", "https://your-api-gateway-url")
+    endpoint = "/config"
+    
+    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
+    
+    timestamp = str(int(time.time() * 1000))
+    
+    payload = {
+        "welcome_messages": {
+            "en": "Hello! Welcome to our updated service!",
+            "zh": "您好！欢迎使用我们更新的服务！"
+        },
+        "goodbye_messages": {
+            "en": "Thank you for using our service! Goodbye!",
+            "zh": "感谢您使用我们的服务！再见！"
+        },
+        "recommended_questions": {
+            "en": [
+                "How can I get started?",
+                "What features are available?",
+                "Can you help me with configuration?"
+            ],
+            "zh": [
+                "我该如何开始？",
+                "有哪些功能可用？",
+                "您能帮我配置吗？"
+            ]
+        },
+        "talk_responses": {
+            "en": "I understand your question. Let me provide you with detailed assistance.",
+            "zh": "我理解您的问题。让我为您提供详细的帮助。"
+        }
+    }
+    
+    body_string = json.dumps(payload, separators=(',', ':'))
+    signature = calculate_signature(body_string, secret_key, timestamp)
+    
+    headers = {
+        "Content-Type": "application/json",
+        "X-Timestamp": timestamp,
+        "X-Sign": signature,
+        "X-Key": access_key
+    }
+    
+    try:
+        response = requests.post(
+            f"{base_url}{endpoint}",
+            data=body_string,
             headers=headers,
             timeout=10
         )
@@ -217,8 +281,10 @@ if __name__ == "__main__":
             test_goodbye()
         elif test_type == "recquestions":
             test_recquestions()
+        elif test_type == "config":
+            test_config()
         else:
-            print("Usage: python test_functions.py [talk|welcome|goodbye|recquestions]")
+            print("Usage: python test_functions.py [talk|welcome|goodbye|recquestions|config]")
     else:
         print("Running all function tests...")
         test_welcome()
@@ -228,3 +294,5 @@ if __name__ == "__main__":
         test_recquestions()
         print("\n" + "="*50 + "\n")
         test_goodbye()
+        print("\n" + "="*50 + "\n")
+        test_config()
