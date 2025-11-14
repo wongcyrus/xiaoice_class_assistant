@@ -1,3 +1,4 @@
+import os
 from typing import Dict
 
 
@@ -21,24 +22,33 @@ def run_preview(controller):
     def on_change_monitor_btn():
         running["selecting"] = True
         try:
+            # Refresh display topology and force re-selection
+            controller.capture.monitor_rect = None
+            controller.capture.refresh_mss()
             controller.capture.ensure_monitor_selected(gui=True, parent=root)
+            # Reset hash so the next change triggers a save immediately
+            controller.last_text_hash = None
         finally:
             running["selecting"] = False
 
-    tk.Button(controls, text="Change Monitor", command=on_change_monitor_btn).pack(
-        side="left"
-    )
+    tk.Button(
+        controls,
+        text="Change Monitor",
+        command=on_change_monitor_btn,
+    ).pack(side="left")
 
     img_label = tk.Label(root)
     img_label.pack(padx=10, pady=10)
 
-    text_var = tk.StringVar(value="OCR text will appear here…")
+    text_var = tk.StringVar(value="hash: <none>\nlast: <none>")
     tk.Label(root, textvariable=text_var, wraplength=800, justify="left").pack(
         padx=10, pady=(0, 10)
     )
 
     status_var = tk.StringVar(value=controller.ocr.status_message or "")
-    tk.Label(root, textvariable=status_var, fg="gray").pack(padx=10, pady=(0, 10))
+    tk.Label(root, textvariable=status_var, fg="gray").pack(
+        padx=10, pady=(0, 10)
+    )
 
     photo_ref: Dict[str, object] = {"img": None}
 
@@ -55,9 +65,13 @@ def run_preview(controller):
 
     def update_loop():
         try:
-            if not running["val"] or running.get("selecting") or not root.winfo_exists():
+            if (
+                not running["val"]
+                or running.get("selecting")
+                or not root.winfo_exists()
+            ):
                 return
-            screenshot, text, _ = controller.process_once()
+            screenshot, _text, _changed = controller.process_once()
             disp = screenshot.resize(
                 (int(screenshot.width * 0.5), int(screenshot.height * 0.5))
             )
@@ -67,9 +81,16 @@ def run_preview(controller):
                 img_label.configure(image=photo)
             except tk.TclError:
                 return
-            text_var.set(text if text else "<no text detected>")
+            # GUI: show only hash and last saved filename
+            last_hash = controller.last_text_hash or "<none>"
+            last_name = (
+                os.path.basename(controller.last_saved_path)
+                if controller.last_saved_path
+                else "<none>"
+            )
+            text_var.set(f"hash: {last_hash}\nlast: {last_name}")
             status_var.set(controller.ocr.status_message)
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError) as e:
             text_var.set(f"Error: {e}")
         finally:
             if running["val"] and root.winfo_exists():

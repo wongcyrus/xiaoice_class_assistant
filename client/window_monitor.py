@@ -27,6 +27,13 @@ def parse_args():
         "--monitor", type=int, default=None, help="Monitor index to capture (mss index)"
     )
     parser.add_argument(
+        "--detect-mode",
+        type=str,
+        default="ocr",
+        choices=["ocr", "image", "both"],
+        help="Change detection method: 'ocr' (slow, text-based), 'image' (fast, pixel-based), 'both' (saves if either changes)",
+    )
+    parser.add_argument(
         "--tesseract-cmd",
         type=str,
         default=(r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe" if os.name == "nt" else None),
@@ -48,6 +55,7 @@ if __name__ == "__main__":
         interval=args.interval,
         capture=capture,
         ocr=ocr,
+        detect_mode=args.detect_mode,
     )
     use_preview = args.preview or (os.name == "nt" and not args.headless)
     if use_preview:

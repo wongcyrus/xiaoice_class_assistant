@@ -1,4 +1,4 @@
-screenshots/**
+*/screenshots/*
 *.log
 temp/
 **/__pycache__/
