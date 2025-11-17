@@ -14,22 +14,55 @@ def setup_environment():
     if os.name == 'nt':  # Windows
         activate_script = os.path.join("venv", "Scripts", "activate")
         pip_path = os.path.join("venv", "Scripts", "pip")
+        python_path = os.path.join("venv", "Scripts", "python")
     else:  # Unix/Linux/macOS
         activate_script = os.path.join("venv", "bin", "activate")
         pip_path = os.path.join("venv", "bin", "pip")
+        python_path = os.path.join("venv", "bin", "python")
     
+    # Upgrade pip and build tools first to improve wheel resolution
+    print("Upgrading pip/setuptools/wheel in the virtual environment...")
+    upgrade = subprocess.run(
+        [
+            python_path,
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+            "setuptools",
+            "wheel",
+        ],
+        check=False,
+    )
+    if upgrade.returncode != 0:
+        print(
+            "Warning: Failed to upgrade pip/setuptools/wheel. "
+            "Continuing anyway..."
+        )
+
     # Install dependencies
     print("Installing dependencies...")
-    subprocess.run([pip_path, "install", "-r", "requirements.txt"])
+    install = subprocess.run(
+        [pip_path, "install", "-r", "requirements.txt"], check=False
+    )
+    if install.returncode != 0:
+        print("\nDependency installation failed.")
+        print(
+            "If you are using Python 3.13, make sure you have the latest pip "
+            "and that wheels exist for your Python version."
+        )
+        sys.exit(install.returncode)
     
-    print(f"\nSetup complete!")
-    print(f"To activate the environment:")
+    print("\nSetup complete!")
+    print("To activate the environment:")
     if os.name == 'nt':
-        print(f"  .\\venv\\Scripts\\activate")
+        print("  .\\venv\\Scripts\\activate")
     else:
-        print(f"  source venv/bin/activate")
-    print(f"To run the application:")
-    print(f"  python window_monitor.py")
+        print("  source venv/bin/activate")
+    print("To run the application:")
+    print("  python window_monitor.py")
+
 
 if __name__ == "__main__":
     setup_environment()
