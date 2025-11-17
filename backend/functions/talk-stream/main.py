@@ -4,10 +4,14 @@ import logging
 import os
 import sys
 from datetime import datetime
+import asyncio
 import functions_framework
+from flask import Response
 from auth_utils import validate_authentication
 from firestore_utils import get_config
-from google.adk.agents.llm_agent import Agent
+from google.adk.agents import Agent
+from google.adk.runners import InMemoryRunner
+from google.genai import types
 
 
 # Robust logging setup that works on Cloud Functions/Cloud Run
@@ -46,69 +50,130 @@ def create_agent():
     )
 
 
+# Create runner (reusable across requests)
+agent = create_agent()
+runner = InMemoryRunner(
+    agent=agent,
+    app_name='xiaoice_classroom_assistant',
+)
+
+
 @functions_framework.http
 def talk_stream(request):
+    """Streaming SSE response that mirrors the reference pattern.
+    Yields incremental chunks followed by a final summary chunk.
+    """
     logger.debug("talk_stream invoked")
     auth_error = validate_authentication(request)
     if auth_error:
         logger.warning("auth_error: %s", auth_error)
         return auth_error
-    
+
     request_json = request.get_json(silent=True) or {}
     logger.debug("request_json: %s", request_json)
-    
+
     ask_text = request_json.get("askText", "")
     session_id = request_json.get("sessionId", str(uuid.uuid4()))
     trace_id = request_json.get("traceId", str(uuid.uuid4()))
     language_code = request_json.get("languageCode", "en")
-    
-    # Use ADK agent to generate response
-    try:
-        agent = create_agent()
-        logger.debug("agent created: %s", type(agent).__name__)
-        
+    extra = request_json.get("extra", {})
+
+    def sse_format(obj: dict) -> str:
+        return f"data: {json.dumps(obj, ensure_ascii=False)}\n\n"
+
+    def stream_response():
         # Prepare the prompt with language context
         prompt = ask_text
-        if language_code != "en":
+        if language_code and language_code != "en":
             prompt = f"Please respond in {language_code}: {ask_text}"
-        
-        # Get response from the agent using send() method
-        agent_response = agent.send(prompt)
-        # Debug log of the raw agent response per request
-        logger.debug("agent_response: %r", agent_response)
-        response_text = (
-            agent_response.text
-            if hasattr(agent_response, 'text')
-            else str(agent_response)
-        )
-        logger.debug("response_text: %s", response_text)
-        
-    except Exception:
-        # Fallback to config-based response on error
-        config = get_config()
-        talk_responses = config.get("talk_responses", {})
-        default_response = f"Mock response to: {ask_text}"
-        response_text = talk_responses.get(
-            language_code, talk_responses.get("en", default_response)
-        )
-        logger.exception("Error generating agent response; using fallback")
-    
-    mock_response = {
-        "askText": ask_text,
-        "extra": request_json.get("extra", {}),
-        "id": trace_id,
-        "replyPayload": None,
-        "replyText": response_text,
-        "replyType": "Llm",
-        "sessionId": session_id,
-        "timestamp": int(datetime.now().timestamp() * 1000),
-        "traceId": trace_id,
-        "isFinal": True,
-    }
-    
-    return f"data: {json.dumps(mock_response)}\n\n", 200, {
-        "Content-Type": "text/event-stream",
+
+        try:
+            # Create a session for this conversation
+            session = asyncio.run(
+                runner.session_service.create_session(
+                    app_name='xiaoice_classroom_assistant',
+                    user_id=session_id,
+                )
+            )
+            logger.debug("Session created: %s", getattr(session, 'id', None))
+
+            content = types.Content(
+                role='user',
+                parts=[types.Part.from_text(text=prompt)]
+            )
+
+            accumulated_text = ""
+            for event in runner.run(
+                user_id=session_id,
+                session_id=getattr(session, 'id', None),
+                new_message=content,
+            ):
+                try:
+                    text = ""
+                    if getattr(event, "content", None) and event.content.parts:
+                        part0 = event.content.parts[0]
+                        text = getattr(part0, "text", "") or ""
+                    if not text:
+                        continue
+                    accumulated_text += text
+                    chunk = {
+                        "askText": ask_text,
+                        "extra": extra,
+                        "id": trace_id,
+                        "replyPayload": None,
+                        "replyText": text,  # incremental piece
+                        "replyType": "Llm",
+                        "sessionId": session_id,
+                        "timestamp": int(datetime.now().timestamp() * 1000),
+                        "traceId": trace_id,
+                        "isFinal": False,
+                    }
+                    logger.debug("Streaming chunk (%s chars)", len(text))
+                    yield sse_format(chunk)
+                except Exception:
+                    logger.exception("Error while streaming a chunk")
+            # Final chunk
+            final_chunk = {
+                "askText": ask_text,
+                "extra": extra,
+                "id": trace_id,
+                "replyPayload": None,
+                "replyText": accumulated_text,
+                "replyType": "Llm",
+                "sessionId": session_id,
+                "timestamp": int(datetime.now().timestamp() * 1000),
+                "traceId": trace_id,
+                "isFinal": True,
+            }
+            logger.debug("Final chunk length: %s", len(accumulated_text))
+            yield sse_format(final_chunk)
+        except Exception:
+            logger.exception("Error generating agent response; using fallback")
+            # Fallback to config-based response on error
+            config = get_config()
+            talk_responses = config.get("talk_responses", {})
+            default_response = f"Mock response to: {ask_text}"
+            response_text = talk_responses.get(
+                language_code, talk_responses.get("en", default_response)
+            )
+            err_chunk = {
+                "askText": ask_text,
+                "extra": extra,
+                "id": trace_id,
+                "replyPayload": None,
+                "replyText": response_text,
+                "replyType": "Llm",
+                "sessionId": session_id,
+                "timestamp": int(datetime.now().timestamp() * 1000),
+                "traceId": trace_id,
+                "isFinal": True,
+            }
+            yield sse_format(err_chunk)
+
+    headers = {
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*",
+        "X-Accel-Buffering": "no",
     }
+    return Response(stream_response(), mimetype="text/event-stream", headers=headers)

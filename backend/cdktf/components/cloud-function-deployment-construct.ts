@@ -33,6 +33,8 @@ export class CloudFunctionDeploymentConstruct extends Construct {
         "eventarc.googleapis.com",
         "secretmanager.googleapis.com",
         "logging.googleapis.com",
+        // Enable Vertex AI for Gemini access from Cloud Functions
+        "aiplatform.googleapis.com",
     ];
 
     public readonly services: GoogleProjectService[];
