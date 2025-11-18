@@ -6,8 +6,15 @@ import sys
 import json
 from datetime import datetime
 
-def add_api_key_to_firestore(project_id: str, key: str, digital_human_id: str, key_id: str, name: str) -> None:
-    db = firestore.Client(project=project_id,database="xiaoice")
+
+def add_api_key_to_firestore(
+    project_id: str,
+    key: str,
+    digital_human_id: str,
+    key_id: str,
+    name: str
+) -> None:
+    db = firestore.Client(project=project_id, database="xiaoice")
     api_key_ref = db.collection('ApiKey').document(key)
     api_key_ref.set({
         'digital_human_id': digital_human_id,
@@ -15,20 +22,23 @@ def add_api_key_to_firestore(project_id: str, key: str, digital_human_id: str, k
         'name': name
     })
 
-def create_api_key(project_id: str, id:str,name: str) -> Key:
-    """
-    Creates and restrict an API key. Add the suffix for uniqueness.
 
-    TODO(Developer):
-    1. Before running this sample,
-      set up ADC as described in https://cloud.google.com/docs/authentication/external/set-up-adc
-    2. Make sure you have the necessary permission to create API keys.
+def create_api_key(project_id: str, key_id: str, name: str) -> Key:
+    """
+    Creates and restricts an API key for the specified project.
+    
+    Prerequisites:
+    1. Set up Application Default Credentials (ADC) as described in:
+       https://cloud.google.com/docs/authentication/external/set-up-adc
+    2. Ensure you have the necessary permissions to create API keys.
 
     Args:
         project_id: Google Cloud project id.
+        key_id: Unique identifier for the API key.
+        name: Display name for the API key.
 
     Returns:
-        response: Returns the created API Key.
+        response: The created API Key object.
     """
     # Create the API Keys client.
     client = api_keys_v2.ApiKeysClient()
@@ -40,37 +50,39 @@ def create_api_key(project_id: str, id:str,name: str) -> Key:
     request = api_keys_v2.CreateKeyRequest()
     request.parent = f"projects/{project_id}/locations/global"
     request.key = key
-    request.key_id = id
+    request.key_id = key_id
 
     # Make the request and wait for the operation to complete.
     response = client.create_key(request=request).result()
 
     print(f"Successfully created an API key: {response.name}")
-    # For authenticating with the API key, use the value in "response.key_string".
-    # To restrict the usage of this API key, use the value in "response.name".
+    # For authenticating with the API key, use the value in
+    # "response.key_string".
+    # To restrict the usage of this API key, use "response.name".
     return response
 
-def restrict_api_key_api(project_id: str, service:str, key_id: str) -> Key:
-    """
-    Restricts an API key. Restrictions specify which APIs can be called using the API key.
 
-    TODO(Developer): Replace the variables before running the sample.
+def restrict_api_key_api(project_id: str, service: str, key_id: str) -> Key:
+    """
+    Restricts an API key to specific APIs and services.
 
     Args:
         project_id: Google Cloud project id.
-        key_id: ID of the key to restrict. This ID is auto-created during key creation.
-            This is different from the key string. To obtain the key_id,
-            you can also use the lookup api: client.lookup_key()
+        service: The service to restrict the API key to.
+        key_id: ID of the key to restrict. This ID is auto-created
+            during key creation. This is different from the key string.
+            To obtain the key_id, you can use: client.lookup_key()
 
     Returns:
-        response: Returns the updated API Key.
+        response: The updated API Key object.
     """
 
     # Create the API Keys client.
     client = api_keys_v2.ApiKeysClient()
 
-    # Restrict the API key usage by specifying the target service and methods.
-    # The API key can only be used to authenticate the specified methods in the service.
+    # Restrict the API key usage by specifying the target service
+    # and methods. The API key can only be used to authenticate
+    # the specified methods in the service.
     api_target = api_keys_v2.ApiTarget()
     api_target.service = service
     api_target.methods = ["*"]
@@ -144,7 +156,7 @@ if __name__ == "__main__":
         "project_id": project_id
     }
     
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         json.dump(key_data, f, indent=2)
     
     print(f"\nAPI key saved to: {filename}")
