@@ -12,6 +12,7 @@ from firestore_utils import get_config
 from google.adk.agents import Agent
 from google.adk.runners import InMemoryRunner
 from google.genai import types
+from google.adk.tools import google_search
 
 
 # Robust logging setup that works on Cloud Functions/Cloud Run
@@ -47,6 +48,7 @@ def create_agent():
             "encouraging manner. "
             "Keep responses concise but informative."
         ),
+        tools=[google_search]
     )
 
 

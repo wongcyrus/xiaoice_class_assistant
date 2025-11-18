@@ -65,8 +65,8 @@ class XiaoiceApiStack extends TerraformStack {
       makePublic: false,
       cloudFunctionDeploymentConstruct: cloudFunctionDeploymentConstruct,
       environmentVariables: {
-        "XiaoiceChatSecretKey": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_secret_key",
-        "XiaoiceChatAccessKey": process.env.XIAOICE_CHAT_SECRET_KEY || "default_access_key",
+        "XIAOICE_CHAT_SECRET_KEY": process.env.XIAOICE_CHAT_SECRET_KEY || "default_secret_key",
+        "XIAOICE_CHAT_ACCESS_KEY": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_access_key",
         "GOOGLE_CLOUD_PROJECT": projectId,
         "GOOGLE_CLOUD_LOCATION": "global",
         "GOOGLE_GENAI_USE_VERTEXAI": "True"
@@ -92,8 +92,8 @@ class XiaoiceApiStack extends TerraformStack {
       cloudFunctionDeploymentConstruct: cloudFunctionDeploymentConstruct,
       serviceAccount: talkStreamFunction.serviceAccount,
       environmentVariables: {
-        "XiaoiceChatSecretKey": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_secret_key",
-        "XiaoiceChatAccessKey": process.env.XIAOICE_CHAT_SECRET_KEY || "default_access_key"
+        "XIAOICE_CHAT_SECRET_KEY": process.env.XIAOICE_CHAT_SECRET_KEY || "default_secret_key",
+        "XIAOICE_CHAT_ACCESS_KEY": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_access_key",
       },
       additionalDependencies: [artifactRegistryIamMember, aiPlatformIamMember],
     });
@@ -107,8 +107,8 @@ class XiaoiceApiStack extends TerraformStack {
       cloudFunctionDeploymentConstruct: cloudFunctionDeploymentConstruct,
       serviceAccount: talkStreamFunction.serviceAccount,
       environmentVariables: {
-        "XiaoiceChatSecretKey": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_secret_key",
-        "XiaoiceChatAccessKey": process.env.XIAOICE_CHAT_SECRET_KEY || "default_access_key"
+        "XIAOICE_CHAT_SECRET_KEY": process.env.XIAOICE_CHAT_SECRET_KEY || "default_secret_key",
+        "XIAOICE_CHAT_ACCESS_KEY": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_access_key",
       },
       additionalDependencies: [artifactRegistryIamMember, aiPlatformIamMember],
     });
@@ -122,8 +122,8 @@ class XiaoiceApiStack extends TerraformStack {
       cloudFunctionDeploymentConstruct: cloudFunctionDeploymentConstruct,
       serviceAccount: talkStreamFunction.serviceAccount,
       environmentVariables: {
-        "XiaoiceChatSecretKey": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_secret_key",
-        "XiaoiceChatAccessKey": process.env.XIAOICE_CHAT_SECRET_KEY || "default_access_key"
+        "XIAOICE_CHAT_SECRET_KEY": process.env.XIAOICE_CHAT_SECRET_KEY || "default_secret_key",
+        "XIAOICE_CHAT_ACCESS_KEY": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_access_key",
       },
       additionalDependencies: [artifactRegistryIamMember, aiPlatformIamMember],
     });
@@ -138,8 +138,8 @@ class XiaoiceApiStack extends TerraformStack {
       cloudFunctionDeploymentConstruct: cloudFunctionDeploymentConstruct,
       serviceAccount: talkStreamFunction.serviceAccount,
       environmentVariables: {
-        "XiaoiceChatSecretKey": process.env.XIAOICE_CHAT_SECRET_KEY || "default_secret_key",
-        "XiaoiceChatAccessKey": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_access_key"
+        "XIAOICE_CHAT_SECRET_KEY": process.env.XIAOICE_CHAT_SECRET_KEY || "default_secret_key",
+        "XIAOICE_CHAT_ACCESS_KEY": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_access_key"
       },
       additionalDependencies: [artifactRegistryIamMember, aiPlatformIamMember],
     });

@@ -10,8 +10,8 @@ def validate_authentication(request):
         signature = request.headers.get("X-Sign") or request.headers.get("signature")
         access_key = request.headers.get("X-Key") or request.headers.get("key")
 
-        stored_secret_key = os.getenv("XiaoiceChatSecretKey")
-        valid_access_key = os.getenv("XiaoiceChatAccessKey")
+        stored_secret_key = os.getenv("XIAOICE_CHAT_SECRET_KEY")
+        valid_access_key = os.getenv("XIAOICE_CHAT_ACCESS_KEY")
 
         if not all([stored_secret_key, valid_access_key]):
             return json.dumps({"error": "Server configuration error"}), 500

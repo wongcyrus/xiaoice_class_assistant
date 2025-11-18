@@ -26,8 +26,8 @@ def test_talk_stream():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/api/talk"
     
-    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
-    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatAccessKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatSecretKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     session_id = str(uuid.uuid4())
@@ -80,8 +80,8 @@ def test_welcome():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/api/welcome"
     
-    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
-    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatAccessKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatSecretKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     session_id = str(uuid.uuid4())
@@ -125,8 +125,8 @@ def test_goodbye():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/api/goodbye"
     
-    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
-    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatAccessKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatSecretKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     session_id = str(uuid.uuid4())
@@ -170,8 +170,8 @@ def test_recquestions():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/api/recquestions"
     
-    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
-    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatAccessKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatSecretKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     trace_id = str(uuid.uuid4())
@@ -213,8 +213,8 @@ def test_config():
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
     endpoint = "/api/config"
     
-    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
-    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatAccessKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatSecretKey", "test_access_key")
     
     timestamp = str(int(time.time() * 1000))
     
@@ -275,8 +275,8 @@ def test_config_and_verify_all():
     print("Testing config update and verification...")
     
     base_url = os.getenv("API_URL", "https://your-api-gateway-url")
-    secret_key = os.getenv("XiaoiceChatSecretKey", "test_secret_key")
-    access_key = os.getenv("XiaoiceChatAccessKey", "test_access_key")
+    secret_key = os.getenv("XiaoiceChatAccessKey", "test_secret_key")
+    access_key = os.getenv("XiaoiceChatSecretKey", "test_access_key")
     
     # Generate random test values
     random_id = str(uuid.uuid4())[:8]
@@ -452,7 +452,7 @@ def test_config_and_verify_all():
     print(f"\nStep 5: Testing talk endpoint for '{test_talk}'...")
     timestamp = str(int(time.time() * 1000))
     talk_payload = {
-        "askText": "Hello, can you help me?",
+        "askText": "What is the current temperature of Hong Kong?",
         "sessionId": str(uuid.uuid4()),
         "traceId": str(uuid.uuid4()),
         "languageCode": "en",
