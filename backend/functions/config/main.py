@@ -157,14 +157,20 @@ def generate_presentation_message(language_code="en", context=""):
 
         result = generated_text.strip()
         
-        # Cache the result
+        # Cache the result only when context is non-empty after normalization
         if result:
             logger.info(
                 "Generated text for %s, attempting cache write",
                 language_code
             )
-            cache_presentation_message(language_code, result, context)
-            logger.info("Cache write completed for %s", language_code)
+            if _normalize_context(context):
+                cache_presentation_message(language_code, result, context)
+                logger.info("Cache write completed for %s", language_code)
+            else:
+                logger.info(
+                    "Skipping cache write for %s due to empty context",
+                    language_code,
+                )
         else:
             logger.warning(
                 "Generated empty result for %s, skipping cache",
@@ -203,7 +209,21 @@ def config(request):
         if request_json.get("generate_presentation", False):
             logger.info("Generating presentation messages with agent")
             languages = request_json.get("languages", ["en"])
+            # Only accept the canonical 'context' field from clients
             context = request_json.get("context", "")
+            # Log the provided speaker notes context with a safe preview
+            _ctx = context or ""
+            _preview = _ctx[:500] + ("…" if len(_ctx) > 500 else "")
+            logger.info(
+                "Received presentation 'context' (%d chars): %s",
+                len(_ctx),
+                _preview
+            )
+            if not context:
+                logger.warning(
+                    "No speaker notes provided in 'context'. "
+                    "Will generate a generic message and skip caching."
+                )
 
             for lang in languages:
                 generated = generate_presentation_message(lang, context)

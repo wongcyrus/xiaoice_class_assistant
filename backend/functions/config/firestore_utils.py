@@ -78,6 +78,10 @@ def _cache_key(language_code: str, context: str) -> str:
     lang = (language_code or "").strip().lower() or "unknown"
     norm_ctx = _normalize_context(context)
     if not norm_ctx:
+        logger.debug(
+            "Using default cache key: empty/whitespace-only context for %s",
+            lang,
+        )
         return f"v1:{lang}:default"
     digest = hashlib.sha256(norm_ctx.encode("utf-8")).hexdigest()[:12]
     return f"v1:{lang}:{digest}"

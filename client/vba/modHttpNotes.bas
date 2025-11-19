@@ -28,25 +28,16 @@ Private Function GetApiKey() As String
     ReDim locations(0 To 3)
     
     ' Location 1: Same directory as the presentation (if open)
-    Debug.Print "DEBUG GetApiKey: Checking ActivePresentation..."
     If Not ActivePresentation Is Nothing Then
-        Debug.Print "DEBUG GetApiKey: ActivePresentation is not Nothing"
-        Debug.Print "DEBUG GetApiKey: ActivePresentation.Path = '" & ActivePresentation.Path & "'"
         If ActivePresentation.Path <> "" Then
             ' If path is a OneDrive/SharePoint URL, do not use it
             If Left$(ActivePresentation.Path, 7) = "http://" Or Left$(ActivePresentation.Path, 8) = "https://" Then
-                Debug.Print "DEBUG GetApiKey: OneDrive/SharePoint URL detected - location 0 disabled"
                 oneDriveDetected = True
                 ' Leave locations(0) empty; warn later only if other locations fail
             Else
                 locations(0) = ActivePresentation.Path & "\api_config.txt"
-                Debug.Print "DEBUG GetApiKey: Location 0 set to: " & locations(0)
             End If
-        Else
-            Debug.Print "DEBUG GetApiKey: ActivePresentation.Path is empty (presentation not saved yet?)"
         End If
-    Else
-        Debug.Print "DEBUG GetApiKey: ActivePresentation is Nothing"
     End If
     
     ' Location 2: User's Documents folder
@@ -60,23 +51,16 @@ Private Function GetApiKey() As String
     
     ' Try each location
     For i = 0 To 3
-        Debug.Print "DEBUG GetApiKey: Trying location " & i & ": " & locations(i)
         If locations(i) <> "" Then
             If fso.FileExists(locations(i)) Then
-                Debug.Print "DEBUG GetApiKey: File exists at location " & i
                 Set ts = fso.OpenTextFile(locations(i), 1) ' 1 = ForReading
                 If Not ts.AtEndOfStream Then
                     apiKey = Trim(ts.ReadLine)
-                    Debug.Print "API key loaded from: " & locations(i)
                 End If
                 ts.Close
                 Set ts = Nothing
                 If apiKey <> "" Then Exit For
-            Else
-                Debug.Print "DEBUG GetApiKey: File does not exist at location " & i
             End If
-        Else
-            Debug.Print "DEBUG GetApiKey: Location " & i & " is empty"
         End If
     Next i
     
@@ -96,7 +80,6 @@ Private Function GetApiKey() As String
     ' Option 2: Read from Windows Registry (requires user to set it once)
     If apiKey = "" Then
         apiKey = wsh.RegRead("HKCU\Software\XiaoiceClassAssistant\ApiKey")
-        If apiKey <> "" Then Debug.Print "API key loaded from registry"
     End If
     
     ' Option 3: Fallback to prompt user (first time setup)
@@ -128,8 +111,6 @@ Private Function GetApiKey() As String
             ts.Close
             Set ts = Nothing
             Set fso = Nothing
-            
-            Debug.Print "API key saved to: " & saveFolder & "\api_config.txt"
         End If
     End If
     
@@ -145,17 +126,15 @@ Public Sub InitSlideShowEvents()
     On Error GoTo EH
     Set PPTEvents = New CAppEvents
     Set PPTEvents.PPTEvent = Application
-    Debug.Print "? Slide show event handler initialized."
     Exit Sub
 EH:
-    Debug.Print "? InitSlideShowEvents error: "; Err.Number; " - "; Err.Description
+    ' Event handler initialization failed
 End Sub
 
 Public Sub StopSlideShowEvents()
     On Error Resume Next
     Set PPTEvents.PPTEvent = Nothing
     Set PPTEvents = Nothing
-    Debug.Print "? Slide show event handler stopped."
 End Sub
 
 ' =========================
@@ -212,10 +191,6 @@ Public Function GetAllSpeakerNotes() As String
     End If
     
     ' If no notes found, return empty string
-    If allNotes = "" Then
-        Debug.Print "WARNING: No speaker notes found in presentation"
-    End If
-    
     GetAllSpeakerNotes = allNotes
 End Function
 
@@ -276,6 +251,95 @@ End Function
 ' =========================
 ' Main entry (called by event)
 ' =========================
+Public Sub SetWelcome(ByVal currentNotes As String)
+    ' This function is called by the event handlers with the current slide notes
+    ' We need to determine which slide we're on from the SlideShow window
+    On Error Resume Next
+    
+    Dim slideNum As String
+    slideNum = "1"  ' Default
+    
+    ' Try to get the current slide position from the active slideshow
+    If Not Application.SlideShowWindows Is Nothing Then
+        If Application.SlideShowWindows.Count > 0 Then
+            slideNum = CStr(Application.SlideShowWindows(1).View.CurrentShowPosition)
+        End If
+    End If
+    
+    Debug.Print "Slide number: " & slideNum & ", Notes: " & currentNotes
+    Debug.Print "Context/Notes content: " & currentNotes
+    
+    ' Load credentials and endpoint
+    Dim apiKey As String
+    apiKey = GetApiKey()
+    Dim baseUrl As String
+    baseUrl = GetBaseUrl(apiKey)
+    
+    ' Validate API key
+    If apiKey = "" Then
+        Exit Sub
+    End If
+    
+    Dim url As String
+    url = baseUrl & "/api/config?key=" & apiKey
+
+    ' Prepare payload with the speaker notes
+    Dim bodyString As String
+    bodyString = BuildConfigPayloadWithGeneration(currentNotes)
+
+    ' Attempt HTTP request with fallback methods
+    Dim statusCode As Long
+    Dim responseText As String
+    statusCode = 0
+    responseText = ""
+    
+    ' Try WinHTTP (most reliable in Office)
+    Debug.Print "[SetWelcome] Attempting HTTP POST to: " & url
+    PostJsonWinHttp url, bodyString, statusCode, responseText
+    If Err.Number <> 0 Then
+        Debug.Print "[SetWelcome] WinHTTP error: " & Err.Description
+        Err.Clear
+    End If
+    
+    ' Fallback to ServerXMLHTTP
+    If statusCode = 0 Then
+        Debug.Print "[SetWelcome] WinHTTP failed, trying ServerXMLHTTP..."
+        PostJsonXmlHttp url, bodyString, statusCode, responseText
+        If Err.Number <> 0 Then
+            Debug.Print "[SetWelcome] ServerXMLHTTP error: " & Err.Description
+            Err.Clear
+        End If
+    End If
+    
+    ' Final fallback to legacy XMLHTTP
+    If statusCode = 0 Then
+        Debug.Print "[SetWelcome] ServerXMLHTTP failed, trying legacy XMLHTTP..."
+        PostJsonXmlHttpLegacy url, bodyString, statusCode, responseText
+        If Err.Number <> 0 Then
+            Debug.Print "[SetWelcome] Legacy XMLHTTP error: " & Err.Description
+            Err.Clear
+        End If
+    End If
+
+    ' Handle response
+    Debug.Print "[SetWelcome] HTTP Status Code: " & statusCode
+    If statusCode = 200 Then
+        Debug.Print "[SetWelcome] SUCCESS: Config updated"
+        If Len(responseText) > 0 Then
+            Debug.Print "[SetWelcome] Response (first 200 chars): " & Left$(responseText, 200)
+        End If
+    ElseIf statusCode = 0 Then
+        Debug.Print "[SetWelcome] ERROR: All HTTP methods failed"
+    Else
+        Debug.Print "[SetWelcome] ERROR: HTTP " & statusCode
+        If Len(responseText) > 0 Then
+            Debug.Print "[SetWelcome] Response: " & Left$(responseText, 200)
+        End If
+    End If
+    
+    If Err.Number <> 0 Then Err.Clear
+End Sub
+
 Public Sub SetPresentation(ByVal presentation As String)
     On Error Resume Next
     
@@ -285,30 +349,24 @@ Public Sub SetPresentation(ByVal presentation As String)
     Dim baseUrl As String
     baseUrl = GetBaseUrl(apiKey)
     
-    ' Debug: Print loaded configuration
-    Debug.Print "DEBUG: Base URL = " & baseUrl
-    Debug.Print "DEBUG: API Key = " & Left$(apiKey, 8) & "..." ' Show only first 8 chars for security
-    
     ' Validate API key
     If apiKey = "" Then
-        Debug.Print "Error: No API key configured. Cannot proceed."
         Exit Sub
     End If
     
     Dim url As String
     url = baseUrl & "/api/config?key=" & apiKey
-    Debug.Print "DEBUG: Full URL = " & url
 
     ' Note: presentation parameter contains slide info (e.g., "slide3")
     ' Extract slide number to get current slide notes
     Dim slideNum As String
     slideNum = ExtractSlideNumber(presentation)
-    Debug.Print "DEBUG: Slide number = " & slideNum
+    Debug.Print "Slide number: " & slideNum & ", Presentation param: " & presentation
     
     ' Get notes for current slide
     Dim slideNotes As String
     slideNotes = GetCurrentSlideNotes(slideNum)
-    Debug.Print "DEBUG: Slide notes length = " & Len(slideNotes) & " chars"
+    Debug.Print "Context/Notes content: " & slideNotes
     
     ' Prepare payload with just the speaker notes (no slide number)
     ' This way cache works even if slides are reordered
@@ -322,28 +380,47 @@ Public Sub SetPresentation(ByVal presentation As String)
     responseText = ""
     
     ' Try WinHTTP (most reliable in Office)
+    Debug.Print "[SetPresentation] Attempting HTTP POST to: " & url
     PostJsonWinHttp url, bodyString, statusCode, responseText
-    If Err.Number <> 0 Then Err.Clear
+    If Err.Number <> 0 Then
+        Debug.Print "[SetPresentation] WinHTTP error: " & Err.Description
+        Err.Clear
+    End If
     
     ' Fallback to ServerXMLHTTP
     If statusCode = 0 Then
+        Debug.Print "[SetPresentation] WinHTTP failed, trying ServerXMLHTTP..."
         PostJsonXmlHttp url, bodyString, statusCode, responseText
-        If Err.Number <> 0 Then Err.Clear
+        If Err.Number <> 0 Then
+            Debug.Print "[SetPresentation] ServerXMLHTTP error: " & Err.Description
+            Err.Clear
+        End If
     End If
     
     ' Final fallback to legacy XMLHTTP
     If statusCode = 0 Then
+        Debug.Print "[SetPresentation] ServerXMLHTTP failed, trying legacy XMLHTTP..."
         PostJsonXmlHttpLegacy url, bodyString, statusCode, responseText
-        If Err.Number <> 0 Then Err.Clear
+        If Err.Number <> 0 Then
+            Debug.Print "[SetPresentation] Legacy XMLHTTP error: " & Err.Description
+            Err.Clear
+        End If
     End If
 
     ' Handle response
+    Debug.Print "[SetPresentation] HTTP Status Code: " & statusCode
     If statusCode = 200 Then
-        Debug.Print "Config updated successfully"
+        Debug.Print "[SetPresentation] SUCCESS: Config updated"
+        If Len(responseText) > 0 Then
+            Debug.Print "[SetPresentation] Response (first 200 chars): " & Left$(responseText, 200)
+        End If
     ElseIf statusCode = 0 Then
-        Debug.Print "HTTP request failed. Check macro security settings or run PowerPoint as Administrator."
+        Debug.Print "[SetPresentation] ERROR: All HTTP methods failed"
     Else
-        Debug.Print "Config update failed. HTTP Status: " & statusCode
+        Debug.Print "[SetPresentation] ERROR: HTTP " & statusCode
+        If Len(responseText) > 0 Then
+            Debug.Print "[SetPresentation] Response: " & Left$(responseText, 200)
+        End If
     End If
     
     If Err.Number <> 0 Then Err.Clear
@@ -369,25 +446,16 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
     
     ' Try multiple locations (same order as GetApiKey)
     ReDim locations(0 To 3)
-    Debug.Print "DEBUG GetBaseUrl: Checking ActivePresentation..."
     If Not ActivePresentation Is Nothing Then
-        Debug.Print "DEBUG GetBaseUrl: ActivePresentation is not Nothing"
-        Debug.Print "DEBUG GetBaseUrl: ActivePresentation.Path = '" & ActivePresentation.Path & "'"
         If ActivePresentation.Path <> "" Then
             ' If path is a OneDrive/SharePoint URL, do not use it
             If Left$(ActivePresentation.Path, 7) = "http://" Or Left$(ActivePresentation.Path, 8) = "https://" Then
-                Debug.Print "DEBUG GetBaseUrl: OneDrive/SharePoint URL detected - location 0 disabled"
                 oneDriveDetected = True
                 ' Leave locations(0) empty; warn later only if other locations fail
             Else
                 locations(0) = ActivePresentation.Path & "\api_config.txt"
-                Debug.Print "DEBUG GetBaseUrl: Location 0 set to: " & locations(0)
             End If
-        Else
-            Debug.Print "DEBUG GetBaseUrl: ActivePresentation.Path is empty (presentation not saved yet?)"
         End If
-    Else
-        Debug.Print "DEBUG GetBaseUrl: ActivePresentation is Nothing"
     End If
     locations(1) = wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant\api_config.txt"
     locations(2) = wsh.ExpandEnvironmentStrings("%APPDATA%") & "\XiaoiceClassAssistant\api_config.txt"
@@ -395,10 +463,8 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
     
     ' Read second line (first line is API key) if present
     For i = 0 To 3
-        Debug.Print "DEBUG GetBaseUrl: Trying location " & i & ": " & locations(i)
         If locations(i) <> "" Then
             If fso.FileExists(locations(i)) Then
-                Debug.Print "DEBUG GetBaseUrl: File exists at location " & i
                 Set ts = fso.OpenTextFile(locations(i), 1)
                 If Not ts.AtEndOfStream Then
                     Dim firstLine As String
@@ -406,18 +472,11 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
                 End If
                 If Not ts.AtEndOfStream Then
                     baseUrl = Trim(ts.ReadLine)
-                    Debug.Print "Base URL loaded from: " & locations(i)
-                Else
-                    Debug.Print "DEBUG GetBaseUrl: File has only 1 line (no base URL)"
                 End If
                 ts.Close
                 Set ts = Nothing
                 If baseUrl <> "" Then Exit For
-            Else
-                Debug.Print "DEBUG GetBaseUrl: File does not exist at location " & i
             End If
-        Else
-            Debug.Print "DEBUG GetBaseUrl: Location " & i & " is empty"
         End If
     Next i
     
@@ -441,42 +500,32 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
             baseUrl = ""
             Err.Clear
         End If
-        If baseUrl <> "" Then Debug.Print "Base URL loaded from registry"
         On Error GoTo 0
     End If
     
     ' Prompt user if still empty
     If baseUrl = "" Then
-        Debug.Print "DEBUG GetBaseUrl: Base URL not found - prompting user"
         On Error Resume Next
         baseUrl = InputBox("Enter the API Base URL for Xiaoice Class Assistant:" & vbCrLf & vbCrLf & _
                            "Example: https://your-gateway-id.ue.gateway.dev" & vbCrLf & _
                            "It will be saved alongside your API key.", _
                            "API Base URL Required", "")
         If Err.Number <> 0 Then
-            Debug.Print "DEBUG GetBaseUrl: InputBox error: " & Err.Description
             Err.Clear
         End If
         On Error GoTo 0
-        
-        Debug.Print "DEBUG GetBaseUrl: User entered: '" & baseUrl & "'"
-        Debug.Print "DEBUG GetBaseUrl: User entered: '" & baseUrl & "'"
         
         If baseUrl <> "" Then
             ' Remove trailing slash if present
             If Right$(baseUrl, 1) = "/" Then
                 baseUrl = Left$(baseUrl, Len(baseUrl) - 1)
-                Debug.Print "DEBUG GetBaseUrl: Removed trailing slash: '" & baseUrl & "'"
             End If
             
             On Error Resume Next
             ' Persist to registry
             wsh.RegWrite "HKCU\Software\XiaoiceClassAssistant\BaseUrl", baseUrl, "REG_SZ"
             If Err.Number <> 0 Then
-                Debug.Print "DEBUG GetBaseUrl: Registry write error: " & Err.Description
                 Err.Clear
-            Else
-                Debug.Print "DEBUG GetBaseUrl: Base URL saved to registry"
             End If
             
             ' Persist to file (two-line format: API key then base URL)
@@ -486,7 +535,6 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
             If Not fso.FolderExists(saveFolder) Then
                 fso.CreateFolder saveFolder
                 If Err.Number <> 0 Then
-                    Debug.Print "DEBUG GetBaseUrl: Folder creation error: " & Err.Description
                     Err.Clear
                 End If
             End If
@@ -511,20 +559,10 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
             Set ts = Nothing
             Set fso = Nothing
             If Err.Number <> 0 Then
-                Debug.Print "DEBUG GetBaseUrl: File save error: " & Err.Description
                 Err.Clear
-            Else
-                Debug.Print "Base URL saved to: " & saveFolder & "\api_config.txt"
             End If
             On Error GoTo 0
-        Else
-            Debug.Print "DEBUG GetBaseUrl: User cancelled or entered empty URL"
         End If
-    End If
-    
-    ' Final validation
-    If baseUrl = "" Then
-        Debug.Print "WARNING GetBaseUrl: Base URL is still empty - API calls will fail"
     End If
     
     Set wsh = Nothing
@@ -783,17 +821,25 @@ Public Sub SmokeTest()
     Dim body As String
     body = "{""ping"":""pong""}"
      
-    Debug.Print "Running SmokeTest with ServerXMLHTTP..."
+    Debug.Print "=== Smoke Test ==="
+    Debug.Print "Testing ServerXMLHTTP..."
     PostJsonXmlHttp "https://httpbin.org/post", body, status, resp
-    Debug.Print "Status=", status
-    Debug.Print resp
-
-    If status = 0 Then
-        Debug.Print "Trying WinHTTP fallback..."
+    Debug.Print "Status: " & status
+    If status > 0 Then
+        Debug.Print "Response (first 500 chars): " & Left$(resp, 500)
+    Else
+        Debug.Print "ServerXMLHTTP failed, trying WinHTTP..."
         PostJsonWinHttp "https://httpbin.org/post", body, status, resp
-        Debug.Print "WinHTTP Status=", status
-        Debug.Print resp
+        Debug.Print "Status: " & status
+        If status > 0 Then
+            Debug.Print "Response (first 500 chars): " & Left$(resp, 500)
+        Else
+            Debug.Print "ERROR: Both methods failed"
+        End If
     End If
+    Debug.Print "=== Test Complete ==="
 End Sub
+
+
 
 

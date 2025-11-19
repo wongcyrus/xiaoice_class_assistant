@@ -1,17 +1,8 @@
-VERSION 1.0 CLASS
-BEGIN
-  MultiUse = -1  'True
-END
-Attribute VB_Name = "CAppEvents"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
 '=== Class Module: CAppEvents ===
 Option Explicit
 
 Public WithEvents PPTEvent As Application
-Attribute PPTEvent.VB_VarHelpID = -1
+
 
 ' ===================================
 ' Event: SlideShowBegin
@@ -25,14 +16,16 @@ Private Sub PPTEvent_SlideShowBegin(ByVal Wn As SlideShowWindow)
     ' Get the slide object for the currently displayed slide (the first one)
     currentNotes = modHttpNotes.GetNotesText(Wn.View.Slide)
 
-    Debug.Print "SlideShowBegin fired. Current position: " & (Wn.View.CurrentShowPosition)
+    Debug.Print "=== SlideShowBegin ==="
+    Debug.Print "Current slide position: " & Wn.View.CurrentShowPosition
+    Debug.Print "Notes length: " & Len(currentNotes) & " chars"
+    Debug.Print "Notes content: " & Left$(currentNotes, 100) & IIf(Len(currentNotes) > 100, "...", "")
 
     If Len(Trim$(currentNotes)) = 0 Then
-        Debug.Print "Notes: (none)"
+        Debug.Print "WARNING: No notes on this slide"
     Else
-        Debug.Print "Notes:"
-        Debug.Print currentNotes
         ' Call into the standard module to send the HTTP request
+        Debug.Print "Calling SetWelcome..."
         modHttpNotes.SetWelcome currentNotes
     End If
 
@@ -52,14 +45,16 @@ Private Sub PPTEvent_SlideShowNextSlide(ByVal Wn As SlideShowWindow)
     Dim currentNotes As String
     currentNotes = modHttpNotes.GetNotesText(Wn.View.Slide)
 
-    Debug.Print "SlideShowNextSlide fired. Current position: " & (Wn.View.CurrentShowPosition)
+    Debug.Print "=== SlideShowNextSlide ==="
+    Debug.Print "Current slide position: " & Wn.View.CurrentShowPosition
+    Debug.Print "Notes length: " & Len(currentNotes) & " chars"
+    Debug.Print "Notes content: " & Left$(currentNotes, 100) & IIf(Len(currentNotes) > 100, "...", "")
 
     If Len(Trim$(currentNotes)) = 0 Then
-        Debug.Print "Notes: (none)"
+        Debug.Print "WARNING: No notes on this slide"
     Else
-        Debug.Print "Notes:"
-        Debug.Print currentNotes
         ' Call into the standard module to send the HTTP request
+        Debug.Print "Calling SetWelcome..."
         modHttpNotes.SetWelcome currentNotes
     End If
 
@@ -67,3 +62,4 @@ Private Sub PPTEvent_SlideShowNextSlide(ByVal Wn As SlideShowWindow)
 EH:
     Debug.Print "? PPTEvent_SlideShowNextSlide error: "; Err.Number; " - "; Err.Description
 End Sub
+
