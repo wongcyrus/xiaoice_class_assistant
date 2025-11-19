@@ -3,4 +3,6 @@ google-cloud
 google-cloud-api-keys
 google-cloud-firestore
 google-api-python-client
+google-genai
+google-adk
 python-pptx

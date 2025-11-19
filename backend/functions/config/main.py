@@ -57,25 +57,41 @@ runner = InMemoryRunner(
 
 
 def generate_presentation_message(language_code="en", context=""):
-    """Generate a presentation message using the ADK agent with caching."""
-    # Check cache first
+    """Generate a presentation message using the ADK agent with caching.
+    
+    Args:
+        language_code: Target language (e.g., 'en', 'zh')
+        context: Speaker notes from current slide
+    """
+    # Check cache first using speaker notes as key
     cached = get_cached_presentation_message(language_code, context)
     if cached:
-        logger.info("Returning cached message for %s", language_code)
+        logger.info(
+            "✅ Cache hit for %s (notes: %s...)",
+            language_code, context[:30]
+        )
         return cached
     
-    logger.info("No cache found, generating new message for %s", language_code)
-    # Generate new message
-    prompt = (
-        f"Generate a presentation introduction message "
-        f"for a classroom presentation in {language_code}. "
-    )
+    logger.info("❌ Cache miss for %s, generating new message", language_code)
+    
+    # Generate new message from speaker notes
     if context:
-        prompt += f"Context: {context}. "
-    prompt += (
-        "Keep it brief (1-2 sentences), professional, and engaging. "
-        "Return ONLY the message text, no explanations."
-    )
+        prompt = (
+            f"Transform the following presentation speaker notes into a "
+            f"clear, engaging message for students in {language_code} "
+            f"language.\n\n"
+            f"Speaker Notes:\n{context}\n\n"
+            f"Generate a concise message (2-4 sentences) that captures the "
+            f"key points. Return ONLY the message text, no explanations."
+        )
+    else:
+        # Fallback if no speaker notes provided
+        prompt = (
+            f"Generate a warm, welcoming presentation introduction message "
+            f"for a classroom presentation in {language_code}. "
+            f"Keep it brief (1-2 sentences), professional, and engaging. "
+            f"Return ONLY the message text, no explanations."
+        )
 
     try:
         session_id = f"presentation_gen_{language_code}"

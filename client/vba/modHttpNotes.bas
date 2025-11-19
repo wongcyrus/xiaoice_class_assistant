@@ -186,6 +186,93 @@ Public Function GetNotesText(ByVal sld As Slide) As String
     GetNotesText = notesText
 End Function
 
+' Extract speaker notes from all slides and combine them
+Public Function GetAllSpeakerNotes() As String
+    On Error Resume Next
+    Dim sld As Slide
+    Dim allNotes As String
+    Dim slideNum As Integer
+    
+    allNotes = ""
+    slideNum = 0
+    
+    ' Loop through all slides in the active presentation
+    If Not ActivePresentation Is Nothing Then
+        For Each sld In ActivePresentation.Slides
+            slideNum = slideNum + 1
+            Dim notes As String
+            notes = GetNotesText(sld)
+            If notes <> "" Then
+                If allNotes <> "" Then
+                    allNotes = allNotes & vbCrLf & vbCrLf
+                End If
+                allNotes = allNotes & "Slide " & slideNum & ": " & notes
+            End If
+        Next sld
+    End If
+    
+    ' If no notes found, return empty string
+    If allNotes = "" Then
+        Debug.Print "WARNING: No speaker notes found in presentation"
+    End If
+    
+    GetAllSpeakerNotes = allNotes
+End Function
+
+' Extract slide number from presentation string (e.g., "slide3" -> "3")
+Private Function ExtractSlideNumber(ByVal presentation As String) As String
+    On Error Resume Next
+    Dim slideNum As String
+    
+    ' If presentation contains "slide" followed by number
+    If InStr(1, LCase(presentation), "slide") > 0 Then
+        ' Extract the number after "slide"
+        Dim pos As Integer
+        pos = InStr(1, LCase(presentation), "slide")
+        If pos > 0 Then
+            slideNum = Mid(presentation, pos + 5) ' Skip "slide"
+            ' Extract only digits
+            Dim i As Integer
+            Dim numStr As String
+            numStr = ""
+            For i = 1 To Len(slideNum)
+                If IsNumeric(Mid(slideNum, i, 1)) Then
+                    numStr = numStr & Mid(slideNum, i, 1)
+                Else
+                    Exit For
+                End If
+            Next i
+            slideNum = numStr
+        End If
+    End If
+    
+    ' Default to slide 1 if not found
+    If slideNum = "" Or Not IsNumeric(slideNum) Then
+        slideNum = "1"
+    End If
+    
+    ExtractSlideNumber = slideNum
+End Function
+
+' Get notes for a specific slide number
+Private Function GetCurrentSlideNotes(ByVal slideNum As String) As String
+    On Error Resume Next
+    Dim sldIndex As Integer
+    sldIndex = CInt(slideNum)
+    
+    If sldIndex < 1 Or ActivePresentation Is Nothing Then
+        GetCurrentSlideNotes = ""
+        Exit Function
+    End If
+    
+    If sldIndex > ActivePresentation.Slides.Count Then
+        GetCurrentSlideNotes = ""
+        Exit Function
+    End If
+    
+    GetCurrentSlideNotes = GetNotesText(ActivePresentation.Slides(sldIndex))
+End Function
+
 ' =========================
 ' Main entry (called by event)
 ' =========================
@@ -212,9 +299,21 @@ Public Sub SetPresentation(ByVal presentation As String)
     url = baseUrl & "/api/config?key=" & apiKey
     Debug.Print "DEBUG: Full URL = " & url
 
-    ' Prepare payload
+    ' Note: presentation parameter contains slide info (e.g., "slide3")
+    ' Extract slide number to get current slide notes
+    Dim slideNum As String
+    slideNum = ExtractSlideNumber(presentation)
+    Debug.Print "DEBUG: Slide number = " & slideNum
+    
+    ' Get notes for current slide
+    Dim slideNotes As String
+    slideNotes = GetCurrentSlideNotes(slideNum)
+    Debug.Print "DEBUG: Slide notes length = " & Len(slideNotes) & " chars"
+    
+    ' Prepare payload with just the speaker notes (no slide number)
+    ' This way cache works even if slides are reordered
     Dim bodyString As String
-    bodyString = BuildConfigPayloadWithGeneration(presentation)
+    bodyString = BuildConfigPayloadWithGeneration(slideNotes)
 
     ' Attempt HTTP request with fallback methods
     Dim statusCode As Long
