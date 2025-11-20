@@ -221,6 +221,85 @@ def test_recquestions():
         print(f"Error: {e}")
 
 
+def test_speech():
+    """Test the /api/speech endpoint"""
+    print("Testing /api/speech endpoint...")
+    
+    base_url = os.getenv("API_URL", "https://your-api-gateway-url")
+    endpoint = "/api/speech"
+    
+    secret_key, access_key = get_auth_keys()
+    
+    timestamp = str(int(time.time() * 1000))
+    session_id = str(uuid.uuid4())
+    trace_id = str(uuid.uuid4())
+    
+    payload = {
+        "traceId": trace_id,
+        "sessionId": session_id,
+        "languageCode": "en"
+    }
+    
+    body_string = json.dumps(payload, separators=(',', ':'))
+    signature = calculate_signature(body_string, secret_key, timestamp)
+    
+    headers = {
+        "Content-Type": "application/json",
+        "X-Timestamp": timestamp,
+        "X-Sign": signature,
+        "X-Key": access_key
+    }
+    
+    try:
+        response = requests.post(
+            f"{base_url}{endpoint}",
+            data=body_string,
+            headers=headers,
+            timeout=30
+        )
+        
+        print(f"Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"Response: {json.dumps(data, indent=2)}")
+            
+            # Check for voiceUrl
+            voice_url = data.get("voiceUrl")
+            if voice_url:
+                print(f"\n✅ Voice URL received: {voice_url[:100]}...")
+                
+                # Try to download the MP3 file
+                print("\nAttempting to download MP3 file...")
+                mp3_response = requests.get(voice_url, timeout=10)
+                
+                if mp3_response.status_code == 200:
+                    content_type = mp3_response.headers.get("Content-Type", "")
+                    content_length = len(mp3_response.content)
+                    
+                    print("✅ MP3 downloaded successfully")
+                    print(f"   Content-Type: {content_type}")
+                    print(f"   Size: {content_length} bytes")
+                    
+                    # Verify it's an MP3 by checking magic bytes
+                    is_id3 = mp3_response.content[:3] == b'ID3'
+                    is_mpeg = mp3_response.content[:2] == b'\xff\xfb'
+                    if is_id3 or is_mpeg:
+                        print("✅ Valid MP3 file format detected")
+                    else:
+                        print("⚠️  File may not be valid MP3 format")
+                else:
+                    status = mp3_response.status_code
+                    print(f"❌ Failed to download MP3: {status}")
+            else:
+                print("❌ No voiceUrl in response")
+        else:
+            print(f"Error: {response.text}")
+            
+    except Exception as e:
+        print(f"Error: {e}")
+
+
 def test_config():
     """Test the /api/config endpoint"""
     print("Testing /api/config endpoint...")
@@ -620,6 +699,47 @@ def test_config_and_verify_all():
     except Exception as e:
         print(f"❌ Talk test error: {e}")
     
+    # Step 6: Test speech endpoint
+    print(f"\nStep 6: Testing speech endpoint...")
+    timestamp = str(int(time.time() * 1000))
+    speech_payload = {
+        "traceId": str(uuid.uuid4()),
+        "sessionId": str(uuid.uuid4()),
+        "languageCode": "en"
+    }
+    
+    body_string = json.dumps(speech_payload, separators=(',', ':'))
+    signature = calculate_signature(body_string, secret_key, timestamp)
+    headers["X-Timestamp"] = timestamp
+    headers["X-Sign"] = signature
+    
+    try:
+        response = requests.post(
+            f"{base_url}/api/speech",
+            data=body_string,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            speech_data = response.json()
+            voice_url = speech_data.get("voiceUrl")
+            if voice_url:
+                print(f"✅ Speech endpoint returned voice URL")
+                # Try to download the MP3
+                mp3_response = requests.get(voice_url, timeout=10)
+                if mp3_response.status_code == 200:
+                    print(f"✅ MP3 file downloaded ({len(mp3_response.content)} bytes)")
+                else:
+                    print(f"❌ Failed to download MP3: {mp3_response.status_code}")
+            else:
+                print(f"❌ No voiceUrl in speech response")
+        else:
+            print(f"❌ Speech error: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ Speech test error: {e}")
+    
     print(f"\n=== Test Summary for Random ID: {random_id} ===")
     print("Configuration update and verification test completed.")
 
@@ -635,6 +755,8 @@ if __name__ == "__main__":
             test_goodbye()
         elif test_type == "recquestions":
             test_recquestions()
+        elif test_type == "speech":
+            test_speech()
         elif test_type == "config":
             test_config()
         elif test_type == "generate":
@@ -644,7 +766,8 @@ if __name__ == "__main__":
         else:
             print(
                 "Usage: python test_functions.py "
-                "[talk|welcome|goodbye|recquestions|config|generate|full]"
+                "[talk|welcome|goodbye|recquestions|speech|config|"
+                "generate|full]"
             )
     else:
         print("Running comprehensive test...")

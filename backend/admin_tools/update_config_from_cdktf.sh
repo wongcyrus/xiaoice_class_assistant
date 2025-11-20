@@ -20,6 +20,7 @@ fi
 # Extract project-id and api-service-name using jq or grep/sed
 PROJECT_ID=$(echo "$OUTPUT_JSON" | grep -o '"project-id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)".*/\1/')
 API_SERVICE_NAME=$(echo "$OUTPUT_JSON" | grep -o '"api-service-name"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)".*/\1/')
+SPEECH_FILE_BUCKET=$(echo "$OUTPUT_JSON" | grep -o '"speech-file-bucket"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)".*/\1/')
 
 if [ -z "$PROJECT_ID" ] || [ -z "$API_SERVICE_NAME" ]; then
     echo "Error: Could not parse project-id or api-service-name from outputs"
@@ -30,11 +31,13 @@ fi
 echo "Retrieved from cdktf outputs:"
 echo "  project_id: $PROJECT_ID"
 echo "  api: $API_SERVICE_NAME"
+echo "  speech_file_bucket: $SPEECH_FILE_BUCKET"
 
 # Update config.py
 cat > "$CONFIG_FILE" << EOF
 project_id="$PROJECT_ID"
 api="$API_SERVICE_NAME"
+speech_file_bucket="$SPEECH_FILE_BUCKET"
 EOF
 
 echo "Successfully updated $CONFIG_FILE"

@@ -35,6 +35,8 @@ export class CloudFunctionDeploymentConstruct extends Construct {
         "logging.googleapis.com",
         // Enable Vertex AI for Gemini access from Cloud Functions
         "aiplatform.googleapis.com",
+        // Text-to-Speech for speech synthesis
+        "texttospeech.googleapis.com",
     ];
 
     public readonly services: GoogleProjectService[];

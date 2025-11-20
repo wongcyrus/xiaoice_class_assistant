@@ -22,17 +22,17 @@
   "dependencies": {
     "cdktf": "^0.21.0",
     "cdktf-cli": "^0.21.0",
-    "constructs": "^10.4.2",
-    "dotenv": "^17.2.1",
+    "constructs": "^10.4.3",
+    "dotenv": "^17.2.3",
     "folder-hash": "^4.1.1"
   },
   "devDependencies": {
     "@types/folder-hash": "^4.0.4",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.3.0",
-    "jest": "^30.0.5",
-    "ts-jest": "^29.4.1",
+    "@types/node": "^24.10.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   }
 }

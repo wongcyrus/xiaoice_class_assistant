@@ -96,6 +96,28 @@ paths:
       responses:
         200:
           description: Successful response
+  /api/speech:
+    post:
+      summary: Speech message endpoint
+      operationId: speech
+      x-google-backend:
+        address: ${SPEECH}
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              traceId:
+                type: string
+              sessionId:
+                type: string
+              languageCode:
+                type: string
+      responses:
+        200:
+          description: Successful response
   /api/config:
     post:
       summary: Configuration endpoint

@@ -7,6 +7,7 @@ This tool:
 1. Reads speaker notes from each slide
 2. Uses Gemini to generate a message for each slide
 3. Caches each message by speaker notes content (not slide number)
+4. Pre-generates speech files and uploads to GCS bucket
 
 Usage:
   python preload_presentation_messages.py \
@@ -19,6 +20,8 @@ Notes:
   - No slide numbers in cache - works even if slides reordered
   - VBA sends current slide's speaker notes for cache lookup
   - Duplicate speaker notes (same content) share same cache entry
+  - Speech files named: speech_{lang}_{content_hash}.mp3
+  - Bucket name read from config.py (generated from Terraform outputs)
 """
 
 import argparse
@@ -29,11 +32,17 @@ import os
 import sys
 from typing import Dict, List
 
-from google.cloud import firestore
+from google.cloud import firestore, texttospeech, storage
 from google.adk.agents import config_agent_utils
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 from pptx import Presentation
+
+# Import config for bucket name
+try:
+    import config
+except ImportError:
+    config = None
 
 # Setup logging
 logging.basicConfig(
@@ -220,6 +229,65 @@ def update_config(db: firestore.Client, messages: Dict[str, str]):
     doc_ref.set(merged)
 
 
+def generate_speech_file(
+    bucket_name: str,
+    message: str,
+    language_code: str
+) -> str:
+    """Generate speech file and upload to bucket.
+    
+    Returns:
+        Filename of uploaded speech file
+    """
+    tts_client = texttospeech.TextToSpeechClient()
+    storage_client = storage.Client()
+    
+    # Generate stable filename from message content and language
+    content_hash = hashlib.sha256(
+        f"{message}:{language_code}".encode("utf-8")
+    ).hexdigest()[:12]
+    filename = f"speech_{language_code}_{content_hash}.mp3"
+    
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(filename)
+    
+    # Skip if already exists
+    if blob.exists():
+        logger.info("Speech file already exists: %s", filename)
+        return filename
+    
+    # Determine voice language
+    if language_code.startswith("en"):
+        voice_language = "en-US"
+    elif language_code.startswith("zh"):
+        voice_language = "zh-CN"
+    else:
+        voice_language = "en-US"
+    
+    synthesis_input = texttospeech.SynthesisInput(text=message)
+    voice = texttospeech.VoiceSelectionParams(
+        language_code=voice_language,
+        ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
+    )
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.MP3,
+        speaking_rate=1.0
+    )
+    
+    tts_response = tts_client.synthesize_speech(
+        input=synthesis_input,
+        voice=voice,
+        audio_config=audio_config
+    )
+    
+    blob.upload_from_string(
+        tts_response.audio_content,
+        content_type="audio/mpeg"
+    )
+    logger.info("Generated speech file: %s", filename)
+    return filename
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Preload presentation message cache from PPTX "
@@ -234,6 +302,16 @@ def main():
 
     if not os.path.exists(args.pptx):
         raise FileNotFoundError(args.pptx)
+    
+    # Get bucket name from config
+    bucket_name = None
+    if config and hasattr(config, 'speech_file_bucket'):
+        bucket_name = config.speech_file_bucket
+        if not bucket_name:
+            logger.warning(
+                "speech_file_bucket in config.py is empty. "
+                "Run update_config_from_cdktf.sh first."
+            )
 
     languages = parse_languages(args.languages)
     prs = Presentation(args.pptx)
@@ -251,9 +329,14 @@ def main():
 
     print(f"\nProcessing {total_slides} slides from {args.pptx}")
     print(f"Languages: {', '.join(languages)}")
+    if bucket_name:
+        print(f"Speech bucket: {bucket_name}")
+    else:
+        print("Speech generation: DISABLED (no bucket configured)")
     print("Using Gemini to generate messages...\n")
 
     cached_count = 0
+    speech_count = 0
     all_messages = {}
 
     # Process each slide individually
@@ -309,6 +392,24 @@ def main():
             print(f"  [{lang}] Cached '{cache_key}'")
             print(f"       -> {preview}")
             
+            # Generate speech file if bucket specified
+            if bucket_name:
+                try:
+                    speech_file = generate_speech_file(
+                        bucket_name,
+                        generated_message,
+                        lang
+                    )
+                    print(f"       -> Speech: {speech_file}")
+                    speech_count += 1
+                except Exception as e:
+                    logger.warning(
+                        "Failed to generate speech for slide %d, lang %s: %s",
+                        slide_idx,
+                        lang,
+                        e
+                    )
+            
             # Build messages dict for config (keyed by lang:slideN)
             all_messages[f"{lang}:slide{slide_idx}"] = generated_message
 
@@ -319,6 +420,11 @@ def main():
             f"\n✓ Successfully cached {cached_count} AI-generated "
             f"message(s) across {len(languages)} language(s)"
         )
+        if bucket_name and speech_count > 0:
+            print(
+                f"✓ Generated {speech_count} speech file(s) "
+                f"in bucket '{bucket_name}'"
+            )
         print(
             f"✓ Updated presentation_messages in config with "
             f"{len(all_messages)} entry/entries"

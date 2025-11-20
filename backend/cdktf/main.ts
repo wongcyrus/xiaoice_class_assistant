@@ -2,6 +2,7 @@ import { Construct } from "constructs";
 import { App, TerraformOutput, TerraformStack } from "cdktf";
 import { ArchiveProvider } from "./.gen/providers/archive/provider";
 import { RandomProvider } from "./.gen/providers/random/provider";
+import { StringResource } from "./.gen/providers/random/string-resource";
 import { DataGoogleBillingAccount } from "./.gen/providers/google-beta/data-google-billing-account";
 import { GoogleBetaProvider } from "./.gen/providers/google-beta/provider/index";
 import { GoogleProject } from "./.gen/providers/google-beta/google-project";
@@ -9,8 +10,10 @@ import { CloudFunctionDeploymentConstruct } from "./components/cloud-function-de
 import { CloudFunctionConstruct } from "./components/cloud-function-construct";
 import { ApigatewayConstruct } from "./components/api-gateway-construct";
 import { GoogleProjectIamMember } from "./.gen/providers/google-beta/google-project-iam-member";
+import { GoogleStorageBucketIamMember } from "./.gen/providers/google-beta/google-storage-bucket-iam-member";
 import * as dotenv from 'dotenv';
 import { FirestoreConstruct } from "./components/firestore-construct";
+import { GoogleStorageBucket } from "./.gen/providers/google-beta/google-storage-bucket";
 
 dotenv.config();
 
@@ -46,6 +49,31 @@ class XiaoiceApiStack extends TerraformStack {
       randomProvider: randomProvider,
       archiveProvider: archiveProvider,
       region: process.env.REGION!,
+    });
+
+    const speechBucketSuffix = new StringResource(this, "speechFileBucketSuffix", {
+      length: 9,
+      special: false,
+      upper: false,
+    });
+
+    const speechFileBucket =new GoogleStorageBucket(this, "speechFileBucket", {
+          // Grant storage.objectAdmin to speech function service account for bucket access
+      name: "speechfile" + speechBucketSuffix.result,
+      project: project.projectId,
+      location: process.env.REGION!,
+      storageClass: "REGIONAL",
+      forceDestroy: true,
+      uniformBucketLevelAccess: true,
+      lifecycleRule: [{
+        action: {
+          type: "Delete",
+        },
+        condition: {
+          age: 1,
+        },
+      }],
+      dependsOn: cloudFunctionDeploymentConstruct.services,
     });
 
     const artifactRegistryIamMember = new GoogleProjectIamMember(this, "cloud-functions-artifact-registry-reader", {
@@ -96,6 +124,37 @@ class XiaoiceApiStack extends TerraformStack {
         "XIAOICE_CHAT_ACCESS_KEY": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_access_key",
       },
       additionalDependencies: [artifactRegistryIamMember, aiPlatformIamMember],
+    });
+    const speechFunction = await CloudFunctionConstruct.create(this, "speechFunction", {
+      functionName: "speech",
+      runtime: "python311",
+      entryPoint: "speech",
+      timeout: 60,
+      availableMemory: "256Mi",
+      makePublic: false,
+      cloudFunctionDeploymentConstruct: cloudFunctionDeploymentConstruct,
+      serviceAccount: talkStreamFunction.serviceAccount,
+      environmentVariables: {
+        "XIAOICE_CHAT_SECRET_KEY": process.env.XIAOICE_CHAT_SECRET_KEY || "default_secret_key",
+        "XIAOICE_CHAT_ACCESS_KEY": process.env.XIAOICE_CHAT_ACCESS_KEY || "default_access_key",
+        "SPEECH_FILE_BUCKET": speechFileBucket.name,
+      },
+      additionalDependencies: [artifactRegistryIamMember, aiPlatformIamMember],
+    });
+    // Grant storage.objectAdmin to speech function service account for bucket access and signed URL generation
+    new GoogleProjectIamMember(this, "speech-bucket-object-admin", {
+      project: projectId,
+      role: "roles/storage.objectAdmin",
+      member: `serviceAccount:${talkStreamFunction.serviceAccount.email}`,
+      dependsOn: cloudFunctionDeploymentConstruct.services,
+    });
+    // Grant Service Account Token Creator role to allow the service account to sign on behalf of itself
+    // Public read access for speech bucket (serving MP3 directly)
+    new GoogleStorageBucketIamMember(this, "speech-bucket-public-read", {
+      bucket: speechFileBucket.name,
+      role: "roles/storage.objectViewer",
+      member: "allUsers",
+      dependsOn: [speechFileBucket],
     });
     const goodbyeFunction = await CloudFunctionConstruct.create(this, "goodbyeFunction", {
       functionName: "goodbye",
@@ -153,6 +212,7 @@ class XiaoiceApiStack extends TerraformStack {
       replaces: {
         "TALK_STREAM": talkStreamFunction.cloudFunction.url,
         "WELCOME": welcomeFunction.cloudFunction.url,
+        "SPEECH": speechFunction.cloudFunction.url,
         "GOODBYE": goodbyeFunction.cloudFunction.url,
         "RECQUESTIONS": recquestionsFunction.cloudFunction.url,
         "CONFIG": configFunction.cloudFunction.url
@@ -175,6 +235,9 @@ class XiaoiceApiStack extends TerraformStack {
 
     new TerraformOutput(this, "api-service-name", {
       value: apigatewayConstruct.apiGatewayApi.managedService,
+    });
+    new TerraformOutput(this, "speech-file-bucket", {
+      value: speechFileBucket.name,
     });
   }
 }
