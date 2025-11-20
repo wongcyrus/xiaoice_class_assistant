@@ -1,24 +1,21 @@
 """Agent configuration and initialization."""
-from google.adk.agents import Agent
+import os
+from google.adk.agents import config_agent_utils
 from google.adk.runners import InMemoryRunner
 
 
 def create_agent():
-    """Create and return an ADK agent for message generation."""
-    return Agent(
-        model="gemini-2.5-flash-lite",
-        name='message_generator',
-        description=(
-            "A creative assistant that generates "
-            "classroom messages and greetings."
-        ),
-        instruction=(
-            "You are a creative assistant that generates warm, "
-            "friendly, and appropriate messages for classroom settings. "
-            "Generate messages that are welcoming, encouraging, "
-            "and culturally sensitive."
-        ),
+    """Create and return an ADK agent from YAML config."""
+    # Get the directory where this script is located
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    config_file_path = os.path.join(
+        current_dir, "presenter_agent", "root_agent.yaml"
     )
+    
+    # Load the agent from the config file using utility function
+    agent = config_agent_utils.from_config(config_file_path)
+    
+    return agent
 
 
 # Create runner (reusable across requests)
