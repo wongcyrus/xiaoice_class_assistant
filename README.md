@@ -14,8 +14,8 @@ Detailed documentation for each component can be found in the `docs/` directory:
 
 ## 🎬 Demo
 
-- [Xiaoice Class Assistant Demo 1](https://youtube.com/shorts/JQs-Za-DAQ0?feature=share)
-- [Xiaoice Class Assistant Demo 2](https://youtube.com/shorts/s_MwaATKnzE?feature=share)
+[![Xiaoice Class Assistant Demo 1](https://img.youtube.com/vi/JQs-Za-DAQ0/0.jpg)](https://www.youtube.com/shorts/JQs-Za-DAQ0)
+[![Xiaoice Class Assistant Demo 2](https://img.youtube.com/vi/s_MwaATKnzE/0.jpg)](https://www.youtube.com/shorts/s_MwaATKnzE)
 
 ## 🚀 Quick Start
 
