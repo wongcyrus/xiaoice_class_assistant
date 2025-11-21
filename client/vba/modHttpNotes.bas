@@ -41,10 +41,10 @@ Private Function GetApiKey() As String
     End If
     
     ' Location 2: User's Documents folder
-    locations(1) = wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant\api_config.txt"
+    locations(1) = wsh.SpecialFolders("MyDocuments") & "\LangBridge\api_config.txt"
     
     ' Location 3: User's AppData\Roaming folder
-    locations(2) = wsh.ExpandEnvironmentStrings("%APPDATA%") & "\XiaoiceClassAssistant\api_config.txt"
+    locations(2) = wsh.ExpandEnvironmentStrings("%APPDATA%") & "\LangBridge\api_config.txt"
     
     ' Location 4: Temp folder (last resort)
     locations(3) = wsh.ExpandEnvironmentStrings("%TEMP%") & "\api_config.txt"
@@ -70,8 +70,8 @@ Private Function GetApiKey() As String
                "We couldn't find 'api_config.txt' in the supported locations." & vbCrLf & _
                "Do NOT place the key next to the OneDrive presentation." & vbCrLf & _
                "Please store your API key in one of these locations:" & vbCrLf & _
-               "  • " & wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant\api_config.txt" & vbCrLf & _
-               "  • Registry key: HKCU\Software\XiaoiceClassAssistant\ApiKey", _
+               "  • " & wsh.SpecialFolders("MyDocuments") & "\LangBridge\api_config.txt" & vbCrLf & _
+               "  • Registry key: HKCU\Software\LangBridge\ApiKey", _
                vbExclamation, "API key location not found"
     End If
     
@@ -79,25 +79,25 @@ Private Function GetApiKey() As String
     
     ' Option 2: Read from Windows Registry (requires user to set it once)
     If apiKey = "" Then
-        apiKey = wsh.RegRead("HKCU\Software\XiaoiceClassAssistant\ApiKey")
+        apiKey = wsh.RegRead("HKCU\Software\LangBridge\ApiKey")
     End If
     
     ' Option 3: Fallback to prompt user (first time setup)
     If apiKey = "" Then
-        apiKey = InputBox("Please enter your API key for Xiaoice Class Assistant:" & vbCrLf & vbCrLf & _
+        apiKey = InputBox("Please enter your API key for LangBridge:" & vbCrLf & vbCrLf & _
                          "The key will be saved to:" & vbCrLf & _
-                         wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant\api_config.txt", _
+                         wsh.SpecialFolders("MyDocuments") & "\LangBridge\api_config.txt", _
                          "API Key Required", "")
         
         ' Save to both registry AND file for next time
         If apiKey <> "" Then
             On Error Resume Next
             ' Save to registry
-            wsh.RegWrite "HKCU\Software\XiaoiceClassAssistant\ApiKey", apiKey, "REG_SZ"
+            wsh.RegWrite "HKCU\Software\LangBridge\ApiKey", apiKey, "REG_SZ"
             
             ' Save to Documents folder
             Dim saveFolder As String
-            saveFolder = wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant"
+            saveFolder = wsh.SpecialFolders("MyDocuments") & "\LangBridge"
             Set fso = CreateObject("Scripting.FileSystemObject")
             
             ' Create folder if it doesn't exist
@@ -465,8 +465,8 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
             End If
         End If
     End If
-    locations(1) = wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant\api_config.txt"
-    locations(2) = wsh.ExpandEnvironmentStrings("%APPDATA%") & "\XiaoiceClassAssistant\api_config.txt"
+    locations(1) = wsh.SpecialFolders("MyDocuments") & "\LangBridge\api_config.txt"
+    locations(2) = wsh.ExpandEnvironmentStrings("%APPDATA%") & "\LangBridge\api_config.txt"
     locations(3) = wsh.ExpandEnvironmentStrings("%TEMP%") & "\api_config.txt"
     
     ' Read second line (first line is API key) if present
@@ -494,8 +494,8 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
                "We couldn't find 'api_config.txt' with a Base URL in the supported locations." & vbCrLf & _
                "Do NOT place the file next to the OneDrive presentation." & vbCrLf & _
                "Please store your config in one of these locations:" & vbCrLf & _
-               "  • " & wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant\api_config.txt (2 lines: API key then Base URL)" & vbCrLf & _
-               "  • Registry key: HKCU\Software\XiaoiceClassAssistant\BaseUrl", _
+               "  • " & wsh.SpecialFolders("MyDocuments") & "\LangBridge\api_config.txt (2 lines: API key then Base URL)" & vbCrLf & _
+               "  • Registry key: HKCU\Software\LangBridge\BaseUrl", _
                vbExclamation, "Base URL location not found"
     End If
     Set fso = Nothing
@@ -503,7 +503,7 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
     ' Registry fallback
     If baseUrl = "" Then
         On Error Resume Next
-        baseUrl = wsh.RegRead("HKCU\Software\XiaoiceClassAssistant\BaseUrl")
+        baseUrl = wsh.RegRead("HKCU\Software\LangBridge\BaseUrl")
         If Err.Number <> 0 Then
             baseUrl = ""
             Err.Clear
@@ -514,7 +514,7 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
     ' Prompt user if still empty
     If baseUrl = "" Then
         On Error Resume Next
-        baseUrl = InputBox("Enter the API Base URL for Xiaoice Class Assistant:" & vbCrLf & vbCrLf & _
+        baseUrl = InputBox("Enter the API Base URL for LangBridge:" & vbCrLf & vbCrLf & _
                            "Example: https://your-gateway-id.ue.gateway.dev" & vbCrLf & _
                            "It will be saved alongside your API key.", _
                            "API Base URL Required", "")
@@ -531,14 +531,14 @@ Private Function GetBaseUrl(Optional ByVal existingApiKey As String = "") As Str
             
             On Error Resume Next
             ' Persist to registry
-            wsh.RegWrite "HKCU\Software\XiaoiceClassAssistant\BaseUrl", baseUrl, "REG_SZ"
+            wsh.RegWrite "HKCU\Software\LangBridge\BaseUrl", baseUrl, "REG_SZ"
             If Err.Number <> 0 Then
                 Err.Clear
             End If
             
             ' Persist to file (two-line format: API key then base URL)
             Dim saveFolder As String
-            saveFolder = wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant"
+            saveFolder = wsh.SpecialFolders("MyDocuments") & "\LangBridge"
             Set fso = CreateObject("Scripting.FileSystemObject")
             If Not fso.FolderExists(saveFolder) Then
                 fso.CreateFolder saveFolder
@@ -604,8 +604,8 @@ Private Function GetCourseId() As String
             End If
         End If
     End If
-    locations(1) = wsh.SpecialFolders("MyDocuments") & "\XiaoiceClassAssistant\api_config.txt"
-    locations(2) = wsh.ExpandEnvironmentStrings("%APPDATA%") & "\XiaoiceClassAssistant\api_config.txt"
+    locations(1) = wsh.SpecialFolders("MyDocuments") & "\LangBridge\api_config.txt"
+    locations(2) = wsh.ExpandEnvironmentStrings("%APPDATA%") & "\LangBridge\api_config.txt"
     locations(3) = wsh.ExpandEnvironmentStrings("%TEMP%") & "\api_config.txt"
     
     ' Read third line (Key, URL, CourseID)
@@ -633,7 +633,7 @@ Private Function GetCourseId() As String
     ' Registry fallback
     If courseId = "" Then
         On Error Resume Next
-        courseId = wsh.RegRead("HKCU\Software\XiaoiceClassAssistant\CourseId")
+        courseId = wsh.RegRead("HKCU\Software\LangBridge\CourseId")
         If Err.Number <> 0 Then
             courseId = ""
             Err.Clear

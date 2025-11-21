@@ -10,8 +10,8 @@ Create a file named `api_config.txt` containing only your API key (one line, no 
 The VBA code will search for this file in the following locations (in order):
 
 1. **Same directory as your PowerPoint presentation** (if the presentation is saved)
-2. **`%USERPROFILE%\Documents\XiaoiceClassAssistant\api_config.txt`** (Recommended)
-3. **`%APPDATA%\XiaoiceClassAssistant\api_config.txt`**
+2. **`%USERPROFILE%\Documents\LangBridge\api_config.txt`** (Recommended)
+3. **`%APPDATA%\LangBridge\api_config.txt`**
 4. **`%TEMP%\api_config.txt`** (fallback)
 
 **Example file content:**
@@ -22,7 +22,7 @@ AIzaSyDbT1tVQgd_-bxDc0hxm_xxkllboCiTh-w
 **Quick Setup:**
 1. Open Windows Explorer
 2. Navigate to `%USERPROFILE%\Documents`
-3. Create a new folder named `XiaoiceClassAssistant`
+3. Create a new folder named `LangBridge`
 4. Create a text file named `api_config.txt` in that folder
 5. Paste your API key as the only line in the file
 
@@ -41,7 +41,7 @@ Store the API key in the Windows Registry (set once, used everywhere):
 ```vb
 ' Run this once to set the key (or use regedit):
 CreateObject("WScript.Shell").RegWrite _
-    "HKCU\Software\XiaoiceClassAssistant\ApiKey", _
+    "HKCU\Software\LangBridge\ApiKey", _
     "your-api-key-here", _
     "REG_SZ"
 ```
@@ -49,7 +49,7 @@ CreateObject("WScript.Shell").RegWrite _
 Or manually via Registry Editor:
 1. Press `Win + R`, type `regedit`
 2. Navigate to `HKEY_CURRENT_USER\Software`
-3. Create key: `XiaoiceClassAssistant`
+3. Create key: `LangBridge`
 4. Create String Value: `ApiKey` = `your-api-key-here`
 
 **Pros:**
@@ -63,8 +63,8 @@ Or manually via Registry Editor:
 
 ### Option 3: User Prompt (Fallback)
 If no key is found, the user will be prompted to enter it. The key will automatically be saved to both:
-- Windows Registry: `HKCU\Software\XiaoiceClassAssistant\ApiKey`
-- File: `%USERPROFILE%\Documents\XiaoiceClassAssistant\api_config.txt`
+- Windows Registry: `HKCU\Software\LangBridge\ApiKey`
+- File: `%USERPROFILE%\Documents\LangBridge\api_config.txt`
 
 **Pros:**
 - Works without pre-configuration
@@ -88,7 +88,7 @@ If no key is found, the user will be prompted to enter it. The key will automati
 **Method 1 - Documents Folder (Recommended):**
 1. Open Windows Explorer
 2. Navigate to `%USERPROFILE%\Documents` (usually `C:\Users\YourName\Documents`)
-3. Create folder: `XiaoiceClassAssistant`
+3. Create folder: `LangBridge`
 4. Create text file: `api_config.txt` inside that folder
 5. Paste your API key as the only line
 6. Save and close
@@ -111,9 +111,9 @@ If no key is found, the user will be prompted to enter it. The key will automati
 If the macro reports "No API key configured":
 
 1. **Check file locations** - Look for `api_config.txt` in:
-   - `%USERPROFILE%\Documents\XiaoiceClassAssistant\`
+   - `%USERPROFILE%\Documents\LangBridge\`
    - Same folder as your PowerPoint file
-   - `%APPDATA%\XiaoiceClassAssistant\`
+   - `%APPDATA%\LangBridge\`
 
 2. **Verify file content** - Open the file and ensure:
    - Contains only the API key (one line)
@@ -122,7 +122,7 @@ If the macro reports "No API key configured":
 
 3. **Check registry** - Verify the key exists:
    - Press `Win + R`, type `regedit`
-   - Navigate to: `HKCU\Software\XiaoiceClassAssistant`
+   - Navigate to: `HKCU\Software\LangBridge`
    - Look for `ApiKey` string value
 
 4. **Enable debug mode** - In PowerPoint:

@@ -1,6 +1,6 @@
-# Xiaoice Class Assistant
+# LangBridge Backend
 
-GCP Cloud Functions implementation of Xiaoice API endpoints using CDKTF for deployment.
+GCP Cloud Functions implementation of LangBridge API endpoints using CDKTF for deployment.
 
 ## Structure
 
@@ -77,4 +77,4 @@ venv/bin/python preload_presentation_messages.py \
   --slide 1
 ```
 
-This updates `presentation_messages` in Firestore (`xiaoice_config/messages`), making `/api/welcome` responses faster by avoiding real-time generation.
+This updates `presentation_messages` in Firestore (`langbridge_config/messages`), making `/api/welcome` responses faster by avoiding real-time generation.

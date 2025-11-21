@@ -17,12 +17,12 @@ import { GoogleStorageBucket } from "./.gen/providers/google-beta/google-storage
 
 dotenv.config();
 
-class XiaoiceApiStack extends TerraformStack {
+class LangBridgeApiStack extends TerraformStack {
   constructor(scope: Construct, id: string) {
     super(scope, id);
   }
 
-  async buildXiaoiceApiStack() {
+  async buildLangBridgeApiStack() {
     const projectId = process.env.PROJECTID!;
 
     const googleBetaProvider = new GoogleBetaProvider(this, "google", {
@@ -111,10 +111,12 @@ class XiaoiceApiStack extends TerraformStack {
       dependsOn: cloudFunctionDeploymentConstruct.services,
     });
 
+    const clientProjectId = process.env.CLIENT_PROJECT_ID!;
+
     // Allow writing to the client's Firestore project (xiaoice-class-assistant)
     // This is required because of the project ID mismatch (backend=xiaice... vs client=xiaoice...)
     new GoogleProjectIamMember(this, "cross-project-firestore-writer", {
-      project: "xiaoice-class-assistant",
+      project: clientProjectId,
       role: "roles/datastore.user",
       member: `serviceAccount:${talkStreamFunction.serviceAccount.email}`,
     });
@@ -211,12 +213,14 @@ class XiaoiceApiStack extends TerraformStack {
         "GOOGLE_CLOUD_LOCATION": "global",
         "GOOGLE_GENAI_USE_VERTEXAI": "True",
         "SPEECH_FILE_BUCKET": speechFileBucket.name,
+        "CLIENT_FIRESTORE_PROJECT_ID": clientProjectId,
+        "CLIENT_FIRESTORE_DATABASE_ID": "(default)",
       },
       additionalDependencies: [artifactRegistryIamMember, aiPlatformIamMember],
     });
 
     const apigatewayConstruct = await ApigatewayConstruct.create(this, "api-gateway", {
-      api: "xiaoiceapi",
+      api: "langbridgeapi",
       project: project.projectId,
       provider: googleBetaProvider,
       replaces: {
@@ -253,8 +257,8 @@ class XiaoiceApiStack extends TerraformStack {
 }
 
 async function buildStack(scope: Construct, id: string) {
-  const stack = new XiaoiceApiStack(scope, id);
-  await stack.buildXiaoiceApiStack();
+  const stack = new LangBridgeApiStack(scope, id);
+  await stack.buildLangBridgeApiStack();
 }
 
 async function createApp(): Promise<App> {

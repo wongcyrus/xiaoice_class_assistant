@@ -10,18 +10,18 @@ def _get_db():
     """Return a Firestore client using an optional env database name.
 
     If `FIRESTORE_DATABASE` is set, use that database; otherwise use the
-    'xiaoice' database.
+    'langbridge' database.
     """
-    db_name = os.environ.get("FIRESTORE_DATABASE", "xiaoice").strip()
+    db_name = os.environ.get("FIRESTORE_DATABASE", "langbridge").strip()
     if db_name:
         return firestore.Client(database=db_name)
-    return firestore.Client(database="xiaoice")
+    return firestore.Client(database="langbridge")
 
 
 def get_config():
     try:
         db = _get_db()
-        doc_ref = db.collection('xiaoice_config').document('messages')
+        doc_ref = db.collection('langbridge_config').document('messages')
         doc = doc_ref.get()
         
         if doc.exists:
@@ -97,7 +97,7 @@ def get_cached_presentation_message(language_code: str, context: str = ""):
     try:
         db = _get_db()
         cache_ref = db.collection(
-            'xiaoice_presentation_cache'
+            'langbridge_presentation_cache'
         ).document(cache_key)
         cached_doc = cache_ref.get()
         
@@ -146,7 +146,7 @@ def cache_presentation_message(
     try:
         db = _get_db()
         cache_ref = db.collection(
-            'xiaoice_presentation_cache'
+            'langbridge_presentation_cache'
         ).document(cache_key)
         
         cache_data = {

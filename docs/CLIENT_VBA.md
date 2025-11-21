@@ -21,11 +21,11 @@ The client loads configuration from `api_config.txt` or the Windows Registry.
 
 **Search Order:**
 1. **`api_config.txt`** in the presentation's folder.
-2. **`%USERPROFILE%\Documents\XiaoiceClassAssistant\api_config.txt`**.
+2. **`%USERPROFILE%\Documents\LangBridge\api_config.txt`**.
 3. **Windows Registry**:
-    - `HKCU\Software\XiaoiceClassAssistant\ApiKey`
-    - `HKCU\Software\XiaoiceClassAssistant\BaseUrl`
-    - `HKCU\Software\XiaoiceClassAssistant\CourseId`
+    - `HKCU\Software\LangBridge\ApiKey`
+    - `HKCU\Software\LangBridge\BaseUrl`
+    - `HKCU\Software\LangBridge\CourseId`
 4. **User Prompt**: If Key/URL not found, asks the user.
 
 ### Macros

@@ -1,8 +1,8 @@
-swagger: '2.0'
+swagger: "2.0"
 info:
-  title: Xiaoice API
-  description: API for Xiaoice chat functions
-  version: 1.0.0
+  title: LangBridge API
+  description: API for LangBridge chat functions
+  version: "1.0.0"
 schemes:
   - https
 produces:

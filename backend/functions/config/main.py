@@ -42,7 +42,7 @@ def config(request):
         }
 
     try:
-        db = firestore.Client(database="xiaoice")
+        db = firestore.Client(database="langbridge")
 
         # Handle presentation message generation if requested
         presentation_messages = request_json.get("presentation_messages", {})
@@ -163,8 +163,8 @@ def config(request):
                     # The client is connected to 'xiaoice-class-assistant' project.
                     # The database there is named '(default)'.
                     broadcast_db = firestore.Client(
-                        project="xiaoice-class-assistant",
-                        database="(default)" 
+                        project=os.environ.get("CLIENT_FIRESTORE_PROJECT_ID", "ai-presenter-client"),
+                        database=os.environ.get("CLIENT_FIRESTORE_DATABASE_ID", "(default)") 
                     )
                     # Use course_id as document ID if available, else 'current'
                     doc_id = course_id if course_id else 'current'
@@ -185,7 +185,7 @@ def config(request):
             "updated_at": firestore.SERVER_TIMESTAMP
         }
 
-        doc_ref = db.collection('xiaoice_config').document('messages')
+        doc_ref = db.collection('langbridge_config').document('messages')
         doc_ref.set(config_data)
         logger.info("config updated in Firestore")
         return json.dumps({"success": True}), 200, {

@@ -1,4 +1,4 @@
-# Xiaoice Class Assistant
+# LangBridge (formerly Xiaoice Class Assistant)
 
 A comprehensive system for integrating AI digital human interactions into classrooms and presentations. It consists of a serverless backend on Google Cloud Platform and client applications for real-time context monitoring.
 
@@ -21,8 +21,8 @@ Detailed documentation for each component can be found in the `docs/` directory:
 
 ## 🎬 Demo
 
-[![Xiaoice Class Assistant Demo 1](https://img.youtube.com/vi/JQs-Za-DAQ0/0.jpg)](https://www.youtube.com/shorts/JQs-Za-DAQ0)
-[![Xiaoice Class Assistant Demo 2](https://img.youtube.com/vi/s_MwaATKnzE/0.jpg)](https://www.youtube.com/shorts/s_MwaATKnzE)
+[![LangBridge Demo 1](https://img.youtube.com/vi/JQs-Za-DAQ0/0.jpg)](https://www.youtube.com/shorts/JQs-Za-DAQ0)
+[![LangBridge Demo 2](https://img.youtube.com/vi/s_MwaATKnzE/0.jpg)](https://www.youtube.com/shorts/s_MwaATKnzE)
 
 ## 🚀 Quick Start
 

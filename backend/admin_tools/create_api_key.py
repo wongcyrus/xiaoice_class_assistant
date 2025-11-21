@@ -14,7 +14,7 @@ def add_api_key_to_firestore(
     key_id: str,
     name: str
 ) -> None:
-    db = firestore.Client(project=project_id, database="xiaoice")
+    db = firestore.Client(project=project_id, database="langbridge")
     api_key_ref = db.collection('ApiKey').document(key)
     api_key_ref.set({
         'digital_human_id': digital_human_id,

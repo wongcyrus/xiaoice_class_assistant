@@ -16,10 +16,10 @@ DEFAULT_VOICES = {
 
 def _get_db():
     """Return a Firestore client."""
-    db_name = os.environ.get("FIRESTORE_DATABASE", "xiaoice").strip()
+    db_name = os.environ.get("FIRESTORE_DATABASE", "langbridge").strip()
     if db_name:
         return firestore.Client(database=db_name)
-    return firestore.Client(database="xiaoice")
+    return firestore.Client(database="langbridge")
 
 def get_course_config(course_id: str):
     """Fetch course configuration from Firestore."""

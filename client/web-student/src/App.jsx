@@ -135,7 +135,7 @@ function App() {
   return (
     <div className="container">
       <header>
-        <h1>🎓 Class Assistant</h1>
+        <h1>🎓 LangBridge</h1>
         <div className="controls">
           <div className="status" style={{ color: status.color }}>
             {status.text}

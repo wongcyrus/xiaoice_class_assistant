@@ -7,7 +7,7 @@ The backend is built on Google Cloud Platform (GCP) using a serverless architect
 The infrastructure code is located in `backend/cdktf/`.
 
 - **Language**: TypeScript
-- **Stack**: `XiaoiceApiStack`
+- **Stack**: `LangBridgeApiStack`
 - **Resources**:
     - **Cloud Functions (Gen 2)**: Python 3.11 runtimes.
     - **API Gateway**: Routes requests to functions.

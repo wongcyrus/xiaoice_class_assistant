@@ -213,7 +213,7 @@ def cache_message(
     """Write a cache entry for generate_presentation_message lookup."""
     cache_key = _cache_key(language_code, context)
     norm_ctx = _normalize_context(context)
-    cache_ref = db.collection("xiaoice_presentation_cache").document(cache_key)
+    cache_ref = db.collection("langbridge_presentation_cache").document(cache_key)
     
     data = {
         "message": message,
@@ -231,7 +231,7 @@ def cache_message(
 
 def update_config(db: firestore.Client, messages: Dict[str, str]):
     """Update presentation_messages in config document."""
-    doc_ref = db.collection("xiaoice_config").document("messages")
+    doc_ref = db.collection("langbridge_config").document("messages")
     doc = doc_ref.get()
     current = doc.to_dict() if doc.exists else {}
     merged = dict(current or {})
@@ -352,7 +352,7 @@ def main():
         app_name='presentation_preloader',
     )
     
-    db = firestore.Client(database="xiaoice")
+    db = firestore.Client(database="langbridge")
 
     print(f"\nProcessing {total_slides} slides from {args.pptx}")
     print(f"Languages: {', '.join(languages)}")

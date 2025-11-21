@@ -2,8 +2,8 @@ from google.cloud import firestore
 
 def get_config():
     try:
-        db = firestore.Client(database="xiaoice")
-        doc_ref = db.collection('xiaoice_config').document('messages')
+        db = firestore.Client(database="langbridge")
+        doc_ref = db.collection('langbridge_config').document('messages')
         doc = doc_ref.get()
         
         if doc.exists:

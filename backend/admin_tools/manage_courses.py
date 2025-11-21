@@ -12,10 +12,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def _get_db():
-    db_name = os.environ.get("FIRESTORE_DATABASE", "xiaoice").strip()
+    db_name = os.environ.get("FIRESTORE_DATABASE", "langbridge").strip()
     if db_name:
         return firestore.Client(database=db_name)
-    return firestore.Client(database="xiaoice")
+    return firestore.Client(database="langbridge")
 
 def create_or_update_course(course_id, title, languages, voice_configs):
     db = _get_db()
@@ -44,7 +44,7 @@ def list_courses():
         print(f"{c.id:<15} {d.get('title', 'N/A'):<30} {langs:<30}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Manage Xiaoice Courses")
+    parser = argparse.ArgumentParser(description="Manage LangBridge Courses")
     subparsers = parser.add_subparsers(dest='command', help='Command to execute')
 
     # ADD/UPDATE Command

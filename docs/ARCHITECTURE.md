@@ -1,6 +1,6 @@
 # System Architecture
 
-The Xiaoice Class Assistant is a comprehensive system designed to enhance presentations and classroom interactions using AI. It consists of a serverless backend on Google Cloud Platform and client-side applications for real-time context monitoring.
+The LangBridge is a comprehensive system designed to enhance presentations and classroom interactions using AI. It consists of a serverless backend on Google Cloud Platform and client-side applications for real-time context monitoring.
 
 ## High-Level Overview
 

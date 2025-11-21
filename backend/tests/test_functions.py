@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test scripts for Xiaoice Class Assistant Cloud Functions
+Test scripts for LangBridge Cloud Functions
 """
 
 import hashlib

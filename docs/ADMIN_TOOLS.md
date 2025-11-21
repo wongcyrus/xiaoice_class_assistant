@@ -53,7 +53,7 @@ python preload_presentation_messages.py --pptx /path/to/deck.pptx --languages "e
 1. Reads the `.pptx` file.
 2. Extracts speaker notes from every slide.
 3. Computes the hash of the notes.
-4. Checks Firestore. If missing, calls the AI to generate a "presentation script" or summary.
+4. Checks Firestore (`langbridge_presentation_cache`). If missing, calls the AI to generate a "presentation script" or summary.
 5. Saves the result to Firestore (tagged with `course_id`).
 6. Generates and uploads TTS audio (using course-specific voice settings).
 
