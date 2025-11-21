@@ -4,6 +4,7 @@ body {
     padding: 20px;
     background-color: #f0f2f5;
     color: #333;
+    overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 .container {
@@ -41,11 +42,13 @@ select {
     border-radius: 6px;
     border: 1px solid #ddd;
     font-size: 1rem;
+    background-color: white;
 }
 
 .status {
     font-size: 0.9rem;
     color: #666;
+    white-space: nowrap;
 }
 
 .content-area {
@@ -62,6 +65,7 @@ select {
     line-height: 1.5;
     margin-bottom: 20px;
     transition: all 0.3s ease;
+    word-wrap: break-word; /* Handle long words */
 }
 
 .audio-controls {
@@ -82,4 +86,46 @@ audio {
     padding-top: 10px;
     text-align: left;
     width: 100%;
+}
+
+/* Mobile Friendly Adjustments */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 20px;
+        width: auto;
+    }
+
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    h1 {
+        font-size: 1.3rem;
+    }
+
+    .message-text {
+        font-size: 1.2rem;
+    }
+
+    select {
+        flex-grow: 1;
+        /* Ensure larger tap target */
+        padding: 10px; 
+    }
+    
+    /* Keep status visible but compact */
+    .status {
+        font-size: 0.85rem;
+    }
 }
