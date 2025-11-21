@@ -72,7 +72,7 @@ export class CloudFunctionConstruct extends Construct {
         });
 
 
-        const dependencies: ITerraformDependable[] = [...props.cloudFunctionDeploymentConstruct.services];
+        const dependencies: ITerraformDependable[] = [];
         if (props.additionalDependencies) {
             dependencies.push(...props.additionalDependencies);
         }

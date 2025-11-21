@@ -8,11 +8,15 @@ import { ITerraformDependable } from "cdktf";
 export interface FirebaseHostingConstructProps {
     readonly project: string;
     readonly appDisplayName: string;
-    readonly siteId?: string; // Optional: custom site ID, otherwise defaults to project ID usually
+    readonly siteId?: string;
     readonly provider: GoogleBetaProvider;
     readonly dependsOn?: ITerraformDependable[];
 }
 
+/**
+ * Construct for setting up Firebase Hosting with a web app.
+ * Creates Firebase project initialization, web app, and hosting site.
+ */
 export class FirebaseHostingConstruct extends Construct {
     public readonly firebaseProject: GoogleFirebaseProject;
     public readonly webApp: GoogleFirebaseWebApp;
@@ -33,23 +37,18 @@ export class FirebaseHostingConstruct extends Construct {
             provider: props.provider,
             project: props.project,
             displayName: props.appDisplayName,
-            dependsOn: [this.firebaseProject, ...(props.dependsOn || [])],
+            dependsOn: [this.firebaseProject],
         });
 
-        // Create (or reference) the Firebase Hosting Site
-        // Note: For the default site, siteId usually matches the project ID. 
-        // Creating a specific one allows for custom subdomains like "my-app-staging".
-        // If we want to configure the default site, we might need to import it or just use the project default.
-        // Here we create a specific one or use the provided one.
-        
-        const siteId = props.siteId || props.project; // Default to project ID for main site
+        // Create the Firebase Hosting Site
+        const siteId = props.siteId || props.project;
 
         this.hostingSite = new GoogleFirebaseHostingSite(this, "firebase-hosting-site", {
             provider: props.provider,
             project: props.project,
             siteId: siteId,
-            appId: this.webApp.appId, // Link the site to the web app
-            dependsOn: [this.firebaseProject, ...(props.dependsOn || [])],
+            appId: this.webApp.appId,
+            dependsOn: [this.firebaseProject],
         });
     }
 }

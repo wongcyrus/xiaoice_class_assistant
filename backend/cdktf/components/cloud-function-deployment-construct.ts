@@ -2,7 +2,6 @@ import { Construct } from "constructs";
 
 import { ArchiveProvider } from "../.gen/providers/archive/provider";
 import { GoogleAppEngineApplication } from "../.gen/providers/google-beta/google-app-engine-application";
-import { GoogleProjectService } from "../.gen/providers/google-beta/google-project-service";
 import { GoogleStorageBucket } from "../.gen/providers/google-beta/google-storage-bucket";
 import { RandomProvider } from "../.gen/providers/random/provider";
 import { StringResource } from "../.gen/providers/random/string-resource";
@@ -15,47 +14,21 @@ export interface CloudFunctionDeploymentConstructProps {
     readonly archiveProvider: ArchiveProvider;
 }
 
+/**
+ * Construct for Cloud Function deployment infrastructure.
+ * Creates a storage bucket for function source code with automatic cleanup.
+ * Note: Service enablement is handled separately in the main stack.
+ */
 export class CloudFunctionDeploymentConstruct extends Construct {
     public readonly sourceBucket: GoogleStorageBucket;
     public readonly project: string;
     public readonly region: string;
 
-    public readonly apis = [
-        "iam.googleapis.com",
-        "cloudresourcemanager.googleapis.com",
-        "apikeys.googleapis.com",
-        "run.googleapis.com",
-        "artifactregistry.googleapis.com",
-        "cloudfunctions.googleapis.com",
-        "storage-api.googleapis.com",
-        "storage-component.googleapis.com",
-        "cloudbuild.googleapis.com",
-        "eventarc.googleapis.com",
-        "secretmanager.googleapis.com",
-        "logging.googleapis.com",
-        // Enable Vertex AI for Gemini access from Cloud Functions
-        "aiplatform.googleapis.com",
-        // Text-to-Speech for speech synthesis
-        "texttospeech.googleapis.com",
-    ];
-
-    public readonly services: GoogleProjectService[];
-
     constructor(scope: Construct, id: string, props: CloudFunctionDeploymentConstructProps) {
         super(scope, id);
 
-
         this.project = props.project;
         this.region = props.region;
-
-        this.services = [];
-        for (const api of this.apis) {
-            this.services.push(new GoogleProjectService(this, `${api.replaceAll(".", "")}`, {
-                project: props.project,
-                service: api,
-                disableOnDestroy: false,
-            }));
-        }
 
         const bucketSuffix = new StringResource(this, "bucketPrefix", {
             length: 9,
@@ -78,16 +51,14 @@ export class CloudFunctionDeploymentConstruct extends Construct {
                     age: 1
                 }
             }],
-            dependsOn: this.services
         });
 
-        // This is a hack to enable datastore API for the project
+        // Enable datastore API for the project (required for Cloud Functions)
         // https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/datastore_index
         new GoogleAppEngineApplication(this, "app-engine-application", {
             locationId: props.region,
             project: props.project,
             databaseType: "CLOUD_DATASTORE_COMPATIBILITY",
-            dependsOn: this.services
         });
     }
 }

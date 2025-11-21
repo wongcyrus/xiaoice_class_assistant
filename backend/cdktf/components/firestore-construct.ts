@@ -10,8 +10,12 @@ export interface FirestoreConstructProps {
   dependsOn?: ITerraformDependable[];
 }
 
+/**
+ * Construct for creating and configuring Firestore database.
+ * Sets up a Firestore Native database and grants necessary IAM permissions.
+ */
 export class FirestoreConstruct extends Construct {
-  private firestoreDatabase: GoogleFirestoreDatabase; // Declare as a private property
+  private firestoreDatabase: GoogleFirestoreDatabase;
 
   constructor(scope: Construct, id: string, props: FirestoreConstructProps) {
     super(scope, id);
@@ -29,7 +33,7 @@ export class FirestoreConstruct extends Construct {
       project: props.project,
       role: "roles/datastore.owner",
       member: `serviceAccount:${props.servicesAccount.email}`,
-      dependsOn: [this.firestoreDatabase], // Refer to the class property
+      dependsOn: [this.firestoreDatabase],
     });
   }
 

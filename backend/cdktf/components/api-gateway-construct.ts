@@ -16,6 +16,10 @@ export interface ApigatewayConstructProps {
     readonly dependsOn?: ITerraformDependable[];
 }
 
+/**
+ * Construct for creating an API Gateway with OpenAPI configuration.
+ * Handles API creation, configuration, and gateway deployment.
+ */
 export class ApigatewayConstruct extends Construct {
     public apiGatewayApi!: GoogleApiGatewayApi;
     public apiGatewayApiConfig!: GoogleApiGatewayApiConfigA;
@@ -56,7 +60,7 @@ export class ApigatewayConstruct extends Construct {
                     googleServiceAccount: props.servicesAccount.email,
                 },
             },
-            dependsOn: props.dependsOn ? [this.apiGatewayApi, ...props.dependsOn] : [this.apiGatewayApi],
+            dependsOn: [this.apiGatewayApi],
         });
 
         this.gateway = new GoogleApiGatewayGateway(this, "gateway", {
@@ -65,8 +69,8 @@ export class ApigatewayConstruct extends Construct {
             project: props.project,
             apiConfig: this.apiGatewayApiConfig.id,
             displayName: "langbridge-presenter-gateway",
-            region: "us-east1", // hardcoded for now as it's limited availability
-            dependsOn: props.dependsOn ? [this.apiGatewayApiConfig, ...props.dependsOn] : [this.apiGatewayApiConfig],
+            region: "us-east1",
+            dependsOn: [this.apiGatewayApiConfig],
         });
     }
 
