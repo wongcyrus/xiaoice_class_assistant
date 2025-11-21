@@ -110,6 +110,15 @@ class XiaoiceApiStack extends TerraformStack {
       member: `serviceAccount:${talkStreamFunction.serviceAccount.email}`,
       dependsOn: cloudFunctionDeploymentConstruct.services,
     });
+
+    // Allow writing to the client's Firestore project (xiaoice-class-assistant)
+    // This is required because of the project ID mismatch (backend=xiaice... vs client=xiaoice...)
+    new GoogleProjectIamMember(this, "cross-project-firestore-writer", {
+      project: "xiaoice-class-assistant",
+      role: "roles/datastore.user",
+      member: `serviceAccount:${talkStreamFunction.serviceAccount.email}`,
+    });
+
     const welcomeFunction = await CloudFunctionConstruct.create(this, "welcomeFunction", {
       functionName: "welcome",
       runtime: "python311",
@@ -200,7 +209,8 @@ class XiaoiceApiStack extends TerraformStack {
       environmentVariables: {
         "GOOGLE_CLOUD_PROJECT": projectId,
         "GOOGLE_CLOUD_LOCATION": "global",
-        "GOOGLE_GENAI_USE_VERTEXAI": "True"
+        "GOOGLE_GENAI_USE_VERTEXAI": "True",
+        "SPEECH_FILE_BUCKET": speechFileBucket.name,
       },
       additionalDependencies: [artifactRegistryIamMember, aiPlatformIamMember],
     });

@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow students to read the broadcast data
+    match /presentation_broadcast/{document=**} {
+      allow read: if true;
+      allow write: if false; // Only backend can write
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -2,8 +2,9 @@ import json
 import logging
 import os
 import sys
+import hashlib
 import functions_framework
-from google.cloud import firestore
+from google.cloud import firestore, texttospeech, storage
 from message_generator import generate_presentation_message
 
 _level_name = os.environ.get("LOG_LEVEL", "DEBUG").upper()
@@ -44,6 +45,14 @@ def config(request):
 
         # Handle presentation message generation if requested
         presentation_messages = request_json.get("presentation_messages", {})
+        
+        # Prepare broadcast payload
+        broadcast_payload = {
+            "updated_at": firestore.SERVER_TIMESTAMP,
+            "languages": {}
+        }
+        bucket_name = os.environ.get("SPEECH_FILE_BUCKET")
+
         if request_json.get("generate_presentation", False):
             logger.info("Generating presentation messages with agent")
             languages = request_json.get("languages", ["en"])
@@ -57,6 +66,10 @@ def config(request):
                 len(_ctx),
                 _preview
             )
+            
+            # Add context to broadcast payload so clients can see original text if needed
+            broadcast_payload["original_context"] = context
+
             if not context:
                 logger.warning(
                     "No speaker notes provided in 'context'. "
@@ -72,6 +85,80 @@ def config(request):
                         lang,
                         generated
                     )
+                    
+                    # Logic to broadcast speech URL
+                    lang_data = {"text": generated}
+                    if bucket_name:
+                        try:
+                            # Reconstruct filename hash logic matching preload script
+                            content_hash = hashlib.sha256(
+                                f"{generated}:{lang}".encode("utf-8")
+                            ).hexdigest()[:12]
+                            filename = f"speech_{lang}_{content_hash}.mp3"
+                            
+                            # Check if file exists, if not create it
+                            storage_client = storage.Client()
+                            bucket = storage_client.bucket(bucket_name)
+                            blob = bucket.blob(filename)
+                            
+                            if not blob.exists():
+                                logger.info("Generating new speech file: %s", filename)
+                                tts_client = texttospeech.TextToSpeechClient()
+                                
+                                if lang.startswith("en"):
+                                    voice_language = "en-US"
+                                elif lang.startswith("zh"):
+                                    voice_language = "zh-CN"
+                                else:
+                                    voice_language = "en-US"
+                                
+                                synthesis_input = texttospeech.SynthesisInput(text=generated)
+                                voice = texttospeech.VoiceSelectionParams(
+                                    language_code=voice_language,
+                                    ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
+                                )
+                                audio_config = texttospeech.AudioConfig(
+                                    audio_encoding=texttospeech.AudioEncoding.MP3,
+                                    speaking_rate=1.0
+                                )
+                                tts_response = tts_client.synthesize_speech(
+                                    input=synthesis_input,
+                                    voice=voice,
+                                    audio_config=audio_config
+                                )
+                                
+                                blob.upload_from_string(
+                                    tts_response.audio_content,
+                                    content_type="audio/mpeg"
+                                )
+                                logger.info("Uploaded new speech file: %s", filename)
+                            else:
+                                logger.info("Using cached speech file: %s", filename)
+
+                            # Public URL for the object
+                            speech_url = f"https://storage.googleapis.com/{bucket_name}/{filename}"
+                            lang_data["audio_url"] = speech_url
+                            logger.info("Broadcast audio URL for %s: %s", lang, speech_url)
+                        except Exception as tts_e:
+                             logger.error("Failed to generate/upload speech for %s: %s", lang, tts_e)
+                    
+                    broadcast_payload["languages"][lang] = lang_data
+            
+            # Broadcast the updates to a dedicated collection for listeners
+            if broadcast_payload["languages"]:
+                try:
+                    # TARGET THE CLIENT PROJECT
+                    # The client is connected to 'xiaoice-class-assistant' project.
+                    # The database there is named '(default)'.
+                    broadcast_db = firestore.Client(
+                        project="xiaoice-class-assistant",
+                        database="(default)" 
+                    )
+                    broadcast_ref = broadcast_db.collection('presentation_broadcast').document('current')
+                    broadcast_ref.set(broadcast_payload)
+                    logger.info("Successfully broadcasted presentation updates to xiaoice-class-assistant")
+                except Exception as b_e:
+                    logger.error("Failed to broadcast presentation updates: %s", b_e)
 
         config_data = {
             "presentation_messages": presentation_messages,

@@ -744,6 +744,118 @@ def test_config_and_verify_all():
     print("Configuration update and verification test completed.")
 
 
+def test_config_broadcast_error():
+    """Test config endpoint to simulate Firestore database not found error"""
+    print(
+        "Testing config endpoint with presentation generation "
+        "(simulating broadcast error)..."
+    )
+    
+    base_url = os.getenv("API_URL", "https://your-api-gateway-url")
+    endpoint = "/api/config"
+    
+    # Read API key from api_key.json
+    api_key_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "admin_tools",
+        "api_key.json"
+    )
+    
+    try:
+        with open(api_key_path, 'r') as f:
+            api_key_data = json.load(f)
+            api_key = api_key_data.get("key_string")
+            if not api_key:
+                print(f"❌ No key_string found in {api_key_path}")
+                return
+            print(f"✅ Loaded API key from {api_key_path}")
+    except FileNotFoundError:
+        print(f"❌ API key file not found: {api_key_path}")
+        return
+    except Exception as e:
+        print(f"❌ Error reading API key: {e}")
+        return
+    
+    # Simulate a config update similar to SetWelcome call from VBA
+    # Slide number: 2, Notes: Definition and Key Characteristics
+    payload = {
+        "generate_presentation": True,
+        "languages": ["en", "zh"],
+        "context": "Definition and Key Characteristics",
+        "presentation_messages": {},
+        "welcome_messages": {
+            "en": "Welcome to the class!",
+            "zh": "欢迎来到课堂！"
+        },
+        "goodbye_messages": {
+            "en": "Thank you for attending!",
+            "zh": "感谢您的参与！"
+        }
+    }
+    
+    body_string = json.dumps(payload, separators=(',', ':'))
+    
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        api_key_preview = api_key[:20]
+        print(
+            f"Sending POST request to: "
+            f"{base_url}{endpoint}?key={api_key_preview}..."
+        )
+        print(f"Payload: {json.dumps(payload, indent=2)}")
+        
+        response = requests.post(
+            f"{base_url}{endpoint}?key={api_key}",
+            data=body_string,
+            headers=headers,
+            timeout=60
+        )
+        
+        print(f"\nHTTP Status Code: {response.status_code}")
+        print(f"Response: {response.text}")
+        
+        if response.status_code == 200:
+            print("\n✅ Config updated successfully")
+            print("Note: If broadcast error occurred, check server logs for:")
+            print(
+                "   'Failed to broadcast presentation updates: 404 "
+                "The database xiaoice'"
+            )
+            print("   'does not exist for project xiaoice-class-assistant'")
+            
+            response_data = response.json()
+            if response_data.get("success"):
+                print("\n✅ Response indicates success: true")
+                print(
+                    "This means the main config update succeeded even if "
+                    "broadcast failed"
+                )
+        else:
+            status_code = response.status_code
+            print(f"\n❌ Config update failed with status {status_code}")
+            print(f"Error response: {response.text}")
+            
+    except requests.exceptions.Timeout:
+        print("\n❌ Request timed out after 60 seconds")
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+    
+    print("\n=== Test Information ===")
+    print("This test simulates the VBA SetWelcome call when changing slides.")
+    print(
+        "The error 'Failed to broadcast presentation updates: 404' "
+        "is logged"
+    )
+    print("but the main config update should still succeed.")
+    print("\nTo verify the broadcast error:")
+    print("1. Check Cloud Functions logs for the config function")
+    print("2. Look for 'Failed to broadcast presentation updates' message")
+    print("3. Verify the error mentions database 'xiaoice' not existing")
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         test_type = sys.argv[1]
@@ -763,11 +875,13 @@ if __name__ == "__main__":
             test_config_generate_presentation()
         elif test_type == "full":
             test_config_and_verify_all()
+        elif test_type == "broadcast":
+            test_config_broadcast_error()
         else:
             print(
                 "Usage: python test_functions.py "
                 "[talk|welcome|goodbye|recquestions|speech|config|"
-                "generate|full]"
+                "generate|full|broadcast]"
             )
     else:
         print("Running comprehensive test...")

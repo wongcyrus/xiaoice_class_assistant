@@ -26,7 +26,7 @@ export class FirestoreConstruct extends Construct {
             }));
         }
 
-        // const googleFirestoreDatabase = 
+        // "xiaoice" database
         new GoogleFirestoreDatabase(this, "Firestore", {
             project: props.project,
             name: "xiaoice",

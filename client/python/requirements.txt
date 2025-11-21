@@ -10,3 +10,7 @@ pyautogui==0.9.54
 # Multi-monitor capture helper
 mss>=9.0.1
 
+# Audio Capture and Speech
+pyaudio
+google-cloud-speech
+requests
