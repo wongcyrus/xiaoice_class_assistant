@@ -1,4 +1,4 @@
-# PowerShell script to run preload_presentation_messages.py with proper environment variables
+# PowerShell script to run main.py with proper environment variables
 
 # Set environment variables for Google Cloud and Vertex AI
 $env:GOOGLE_CLOUD_PROJECT = "langbridge-presenter"

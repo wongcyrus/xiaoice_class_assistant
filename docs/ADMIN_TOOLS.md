@@ -35,18 +35,29 @@ python manage_courses.py update --id "course_101" --title "Intro to AI" --langs 
 python manage_courses.py list
 ```
 
-### 2. `preload_presentation_messages.py`
+### 2. `preload_presentation_messages` (Presentation Preloader)
+
+**Location**: `backend/presentation-preloader/`
 
 Pre-generates AI presentation messages from a PowerPoint file and caches them.
 
 **Usage:**
 
 ```bash
-# Using Course Config (Recommended)
-python preload_presentation_messages.py --pptx /path/to/deck.pptx --course-id "course_101"
+cd backend/presentation-preloader
 
-# Manual Language Selection (Legacy)
-python preload_presentation_messages.py --pptx /path/to/deck.pptx --languages "en,zh"
+# Install dependencies (first time)
+pip install -r requirements.txt
+
+# Update configuration (if infrastructure changed)
+./update_config.sh
+
+# Run the tool
+# Using Course Config (Recommended)
+python main.py --pptx /path/to/deck.pptx --course-id "course_101"
+
+# Manual Language Selection
+python main.py --pptx /path/to/deck.pptx --languages "en,zh"
 ```
 
 **Process**:

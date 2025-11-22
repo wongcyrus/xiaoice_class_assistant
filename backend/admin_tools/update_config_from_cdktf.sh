@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to update admin_tools/config.py from cdktf outputs
+# Script to update config.py files from cdktf outputs for both admin_tools and presentation-preloader
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CDKTF_DIR="$SCRIPT_DIR/../cdktf"

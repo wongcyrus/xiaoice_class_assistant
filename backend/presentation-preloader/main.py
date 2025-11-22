@@ -10,7 +10,7 @@ This tool:
 4. Pre-generates speech files and uploads to GCS bucket
 
 Usage:
-  python preload_presentation_messages.py \
+  python main.py \
     --pptx /path/to/deck.pptx \
     --languages en,zh
 
@@ -21,7 +21,7 @@ Notes:
   - VBA sends current slide's speaker notes for cache lookup
   - Duplicate speaker notes (same content) share same cache entry
   - Speech files named: speech_{lang}_{content_hash}.mp3
-  - Bucket name read from config.py (generated from Terraform outputs)
+  - Bucket name read from config.py (generated from Terraform outputs using ./update_config.sh)
 """
 
 import argparse

@@ -18,7 +18,8 @@ cache_key = v1:{language}:{hash(speaker_notes_content)}
 
 #### 1. **Preload** (Admin runs once per presentation)
 ```bash
-python preload_presentation_messages.py --pptx deck.pptx --languages en,zh
+# Run from backend/presentation-preloader/
+python main.py --pptx deck.pptx --languages en,zh
 ```
 
 **What it does:**
@@ -108,7 +109,8 @@ If Slide 5 has same notes as Slide 2:
 
 1. **Preload presentation:**
    ```bash
-   python preload_presentation_messages.py --pptx test.pptx --languages en
+   # From backend/presentation-preloader/
+   python main.py --pptx test.pptx --languages en
    ```
 
 2. **Reorder slides in PowerPoint** (move slide 3 to position 1)
