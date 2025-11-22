@@ -184,15 +184,13 @@ class LangBridgeApiStack extends TerraformStack {
     });
 
     // Allow writing to the client's Firestore project (xiaoice-class-assistant)
-    // This is required because of the project ID mismatch (backend=xiaice... vs client=xiaoice...)
-    /*
-    new GoogleProjectIamMember(this, "cross-project-firestore-writer", {
+    // The configFunction needs this to broadcast presentation updates to the client Firestore
+    IamRoleConstruct.createProjectRole(this, "cross-project-firestore-writer", {
       project: clientProjectId,
       role: "roles/datastore.user",
       member: `serviceAccount:${talkStreamFunction.serviceAccount.email}`,
-      dependsOn: apisEnabledWithDelay,
+      dependsOn: [clientTimeSleep],
     });
-    */
 
     const welcomeFunction = await CloudFunctionConstruct.create(this, "welcomeFunction", {
       functionName: "welcome",

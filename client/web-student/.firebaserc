@@ -1,6 +1,6 @@
 {
   "projects": {
-    "prod": "xiaoice-class-assistant"
+    "prod": "langbridge-presenter-client"
   },
   "targets": {},
   "etags": {}

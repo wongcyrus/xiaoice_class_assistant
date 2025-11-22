@@ -23,7 +23,7 @@ To associate your presentation with a course (required for multi-language suppor
 
 ### File Format (3 lines):
 ```
-AIzaSyCTgbvlKqCTbb-ICq_fcTDR7cZsz6l8G2g
+XXXXXXXXXXXXXXXXXXXXXX
 https://langbridgeapi-1ynqko7b4cw5d.apigateway.langbridge-presenter.cloud.goog
 demo
 ```
