@@ -1,4 +1,4 @@
-# LangBridge (formerly Xiaoice Class Assistant)
+# LangBridge Presenter
 
 A comprehensive system for integrating AI digital human interactions into classrooms and presentations. It consists of a serverless backend on Google Cloud Platform and client applications for real-time context monitoring.
 
