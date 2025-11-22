@@ -1,4 +1,4 @@
-# PowerShell script to run preload_presentation_messages.py with proper environment variables
+# PowerShell script to run main.py with proper environment variables
 
 # Set environment variables for Google Cloud and Vertex AI
 $env:GOOGLE_CLOUD_PROJECT = "langbridge-presenter"
@@ -34,7 +34,7 @@ Write-Host "Project: $env:GOOGLE_CLOUD_PROJECT" -ForegroundColor Cyan
 Write-Host ""
 
 # Run the preload script
-python preload_presentation_messages.py --pptx $pptxPath --languages $languages
+python main.py --pptx $pptxPath --languages $languages
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "`nPreload completed successfully!" -ForegroundColor Green

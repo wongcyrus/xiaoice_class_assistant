@@ -10,7 +10,7 @@ This tool:
 4. Pre-generates speech files and uploads to GCS bucket
 
 Usage:
-  python preload_presentation_messages.py \
+  python main.py \
     --pptx /path/to/deck.pptx \
     --languages en,zh
 
@@ -21,7 +21,7 @@ Notes:
   - VBA sends current slide's speaker notes for cache lookup
   - Duplicate speaker notes (same content) share same cache entry
   - Speech files named: speech_{lang}_{content_hash}.mp3
-  - Bucket name read from config.py (generated from Terraform outputs)
+  - Bucket name read from config.py (generated from Terraform outputs using ./update_config.sh)
 """
 
 import argparse
@@ -40,14 +40,10 @@ from google.genai import types
 from pptx import Presentation
 
 # Add path to backend/functions/config to import course_utils
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "functions", "config"))
-import course_utils
+from utils import course_utils
 
 # Import config for bucket name
-try:
-    import config
-except ImportError:
-    config = None
+import config
 
 # Setup logging
 logging.basicConfig(
@@ -62,12 +58,9 @@ def create_agent():
     """Create and return an ADK agent from YAML config."""
     # Get path to the agent config file
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    backend_dir = os.path.dirname(script_dir)
     config_file_path = os.path.join(
-        backend_dir,
-        "functions",
-        "config",
-        "presenter_agent",
+        script_dir,
+        "agent_config",
         "root_agent.yaml"
     )
     

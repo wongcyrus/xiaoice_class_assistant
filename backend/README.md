@@ -65,16 +65,15 @@ Tools in `admin_tools/` help manage API keys and pre-generate configuration.
 
 ### Pre-generate Presentation Messages from PPTX
 
-To cache presentation messages from PowerPoint slides:
+To cache presentation messages from PowerPoint slides, use the `presentation-preloader` tool:
 
 ```bash
-cd admin_tools
-./setup.sh  # Install dependencies
-venv/bin/python preload_presentation_messages.py \
+cd presentation-preloader
+pip install -r requirements.txt
+python main.py \
   --pptx /path/to/deck.pptx \
   --languages en,zh \
-  --template "Welcome to {title}" \
-  --slide 1
+  --course-id "course_101"
 ```
 
 This updates `presentation_messages` in Firestore (`langbridge_config/messages`), making `/api/welcome` responses faster by avoiding real-time generation.
