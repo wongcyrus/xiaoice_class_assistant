@@ -180,7 +180,7 @@ def main():
             "VITE_FIREBASE_API_KEY": firebase_api_key,
             "VITE_FIREBASE_AUTH_DOMAIN": f"{client_project_id}.firebaseapp.com",
             "VITE_FIREBASE_PROJECT_ID": client_project_id,
-            "VITE_FIREBASE_STORAGE_BUCKET": f"{client_project_id}.appspot.com",
+            "VITE_FIREBASE_STORAGE_BUCKET": f"{client_project_id}.firebasestorage.app",
             "VITE_FIREBASE_MESSAGING_SENDER_ID": sender_id,
             "VITE_FIREBASE_APP_ID": webapp_app_id,
             "VITE_FIREBASE_HOSTING_URL": hosting_url

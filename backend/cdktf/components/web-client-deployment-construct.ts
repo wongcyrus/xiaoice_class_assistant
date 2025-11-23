@@ -24,7 +24,7 @@ export class WebClientDeploymentConstruct extends Construct {
             `VITE_FIREBASE_API_KEY=${props.firebaseApiKey}`,
             `VITE_FIREBASE_AUTH_DOMAIN=${props.clientProjectId}.firebaseapp.com`,
             `VITE_FIREBASE_PROJECT_ID=${props.clientProjectId}`,
-            `VITE_FIREBASE_STORAGE_BUCKET=${props.clientProjectId}.appspot.com`,
+            `VITE_FIREBASE_STORAGE_BUCKET=${props.clientProjectId}.firebasestorage.app`,
             `VITE_FIREBASE_APP_ID=${props.firebaseWebAppAppId}`,
             `VITE_FIREBASE_HOSTING_URL=${props.firebaseHostingSiteDefaultUrl}`
         ].join("\n");
@@ -67,7 +67,7 @@ export class WebClientDeploymentConstruct extends Construct {
 VITE_FIREBASE_API_KEY=${props.firebaseApiKey}
 VITE_FIREBASE_AUTH_DOMAIN=${props.clientProjectId}.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=${props.clientProjectId}
-VITE_FIREBASE_STORAGE_BUCKET=${props.clientProjectId}.appspot.com
+VITE_FIREBASE_STORAGE_BUCKET=${props.clientProjectId}.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=$SENDER_ID
 VITE_FIREBASE_APP_ID=${props.firebaseWebAppAppId}
 VITE_FIREBASE_HOSTING_URL=${props.firebaseHostingSiteDefaultUrl}

@@ -258,11 +258,7 @@ function App() {
                     </button>
                 )}
               </div>
-              {msg.original_context && (
-                 <div className="original-context">
-                   {msg.original_context.substring(0, 80)}{msg.original_context.length > 80 ? "..." : ""}
-                 </div>
-              )}
+
             </div>
           );
         })}
