@@ -63,6 +63,7 @@ graph TD
 
 ### 3. Admin Tools
 - **Preloader**: Scripts to pre-generate AI responses for presentation slides.
+- **Excel Cache Editor**: Tools to export cache to Excel for manual editing and re-importing.
 - **Key Management**: Tools to generate and revoke API keys.
 
 ## Data Flow

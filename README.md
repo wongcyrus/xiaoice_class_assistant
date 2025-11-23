@@ -16,6 +16,7 @@ Detailed documentation for each component can be found in the `docs/` directory:
 ### ✨ New in this version:
 
 - **Multi-language support**: Now includes English, Mandarin, and Cantonese Text-to-Speech (TTS).
+- **Excel Cache Editor**: Easily export, edit, and re-import presentation messages using Excel to refine AI content.
 - **Course-level configuration**: Manage languages, voices, and content caching per course.
   - See [Admin Tools & Caching](docs/ADMIN_TOOLS.md) for how to set up courses.
   - See [VBA PowerPoint Client](docs/CLIENT_VBA.md) for how to configure your presentations with a `CourseID`.

@@ -58,9 +58,11 @@ Located in `backend/functions/`.
 
 The backend uses Firestore for persistence.
 
-- **Collection**: `cache`
+- **Collection**: `langbridge_presentation_cache`
     - Stores pre-generated messages for slide content.
     - **Key Format**: `v1:{language}:{hash(content)}`
+- **Collection**: `courses`
+    - Stores course-specific configurations (languages, voices).
 - **Collection**: `sessions` (implied)
     - Stores active conversation state.
 

@@ -21,7 +21,43 @@ This ensures:
 
 ## Tools
 
-### 1. `manage_courses.py`
+### 1. Excel Cache Editor (NEW)
+
+Easily view and edit cached presentation messages using Excel. This allows content creators to refine AI-generated text without touching the database directly.
+
+**Location**: `backend/admin_tools/`
+
+#### Export to Excel
+Export the current cache for a specific course to an `.xlsx` file.
+
+```bash
+# From backend/admin_tools/
+python export_cache_to_excel.py --course-id "course_101" --output my_cache.xlsx
+```
+
+**Columns**:
+- `Cache Key` (Do Not Edit): Unique ID.
+- `Language`: The target language (e.g., `en`, `zh`).
+- `Speaker Notes`: Context for reference.
+- `Generated Message`: **Edit this column** to change what the AI says.
+
+#### Import from Excel
+Import the modified Excel file back into the system.
+
+```bash
+# From backend/admin_tools/
+python import_cache_from_excel.py --course-id "course_101" --file my_cache.xlsx
+```
+
+**What happens on import?**
+1. The script compares the Excel message with the database.
+2. If the text has changed:
+   - Updates the message in Firestore.
+   - **Automatically regenerates** the TTS audio (MP3).
+   - Uploads the new audio to Cloud Storage.
+   - Updates the `audio_url` in the cache.
+
+### 2. `manage_courses.py`
 
 Manages Course Configurations (languages, voices, etc.).
 
@@ -37,13 +73,11 @@ python manage_courses.py update --id "course_101" --title "Intro to AI" --langs 
 python manage_courses.py list
 ```
 
-### 2. `preload_presentation_messages` (Presentation Preloader)
+### 3. `preload_presentation_messages` (Presentation Preloader)
 
 **Location**: `backend/presentation-preloader/`
 
 Pre-generates AI presentation messages from a PowerPoint file and caches them.
-
-**Language Codes**: These follow the **BCP-47** standard (e.g., `en-US`, `zh-CN`, `yue-HK`).
 
 **Usage:**
 
@@ -72,7 +106,7 @@ python main.py --pptx /path/to/deck.pptx --languages "en-US,zh-CN,yue-HK"
 5. Saves the result to Firestore (tagged with `course_id`).
 6. Generates and uploads TTS audio (using course-specific voice settings).
 
-### 3. `create_api_key.py` / `delete_api_key.py`
+### 4. `create_api_key.py` / `delete_api_key.py`
 
 **Purpose**: Manage API keys for the API Gateway.
 
@@ -103,8 +137,7 @@ cd backend/admin_tools
 ./setup.sh
 
 # Option 2: Manual setup
-pip install virtualenv
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
