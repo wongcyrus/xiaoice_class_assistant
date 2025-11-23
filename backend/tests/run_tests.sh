@@ -1,54 +1,33 @@
 #!/bin/bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-CDKTF_DIR="$SCRIPT_DIR/../cdktf"
-TESTS_DIR="$SCRIPT_DIR"
-VENV_DIR="$TESTS_DIR/venv"
+BACKEND_DIR="$SCRIPT_DIR/.."
+SYNC_SCRIPT="$BACKEND_DIR/sync_config.py"
+VENV_DIR="$SCRIPT_DIR/venv"
 
-cd "$CDKTF_DIR" || exit 1
-
-# Get terraform outputs
-OUTPUT_JSON=$(npx cdktf output --outputs-file-include-sensitive-outputs --outputs-file /dev/stdout 2>/dev/null | grep -A 1000 '{')
-
-if [ -z "$OUTPUT_JSON" ]; then
-    echo "Error: Could not retrieve cdktf outputs"
+# 1. Sync Configuration (generates .env.test and other config files)
+echo "Syncing configuration..."
+if [ -f "$SYNC_SCRIPT" ]; then
+    python3 "$SYNC_SCRIPT"
+else
+    echo "Error: sync_config.py not found at $SYNC_SCRIPT"
     exit 1
 fi
 
-PROJECT_ID=$(echo "$OUTPUT_JSON" | grep -o '"project-id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)".*/\1/')
-API_URL=$(echo "$OUTPUT_JSON" | grep -o '"api-url"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)".*/\1/')
-
-if [ -z "$PROJECT_ID" ] || [ -z "$API_URL" ]; then
-    echo "Error: Could not parse outputs"
-    exit 1
-fi
-
-echo "Using API URL: https://$API_URL"
-
-cd "$TESTS_DIR" || exit 1
-
-# Load environment variables from backend/cdktf/.env if it exists
-if [ -f "$CDKTF_DIR/.env" ]; then
-    set -a
-    # shellcheck disable=SC1090
-    . "$CDKTF_DIR/.env"
-    set +a
-fi
-
-# Setup virtual environment
+# 2. Setup Virtual Environment
+cd "$SCRIPT_DIR" || exit 1
 if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating virtual environment..."
     python3 -m venv venv
 fi
 
 source venv/bin/activate
+
+# 3. Install Dependencies
+echo "Installing dependencies..."
 pip install -r requirements.txt
 
-# Set environment variables and run tests
-export API_URL="https://$API_URL"
-# Prefer values from cdktf .env (XIAOICE_*) but allow local override via camelCase vars
-export XiaoiceChatSecretKey="${XiaoiceChatSecretKey:-${XIAOICE_CHAT_SECRET_KEY:-test_secret_key}}"
-export XiaoiceChatAccessKey="${XiaoiceChatAccessKey:-${XIAOICE_CHAT_ACCESS_KEY:-test_access_key}}"
-
-# Run pytest with verbose output
-# Pass any arguments to this script directly to pytest (e.g. -k "welcome")
+# 4. Run Tests
+# Note: conftest.py is configured to load environment variables from .env.test
+echo "Running tests..."
 pytest -v "$@"

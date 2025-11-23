@@ -66,11 +66,6 @@ The backend uses Firestore for persistence.
 
 ## Deployment
 
-To deploy the backend:
+Full deployment instructions, including prerequisites and configuration, are available in **[Deployment Guide](DEPLOYMENT.md)**.
 
-1. Navigate to `backend/cdktf`.
-2. Install dependencies: `npm install`.
-3. Synthesize Terraform config: `npx cdktf synth`.
-4. Deploy: `npx cdktf deploy`.
-
-See `backend/README.md` for detailed deployment prerequisites.
+The backend is deployed as part of the unified system using the `./deploy.sh` script at the project root.

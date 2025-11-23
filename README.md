@@ -7,6 +7,7 @@ A comprehensive system for integrating AI digital human interactions into classr
 Detailed documentation for each component can be found in the `docs/` directory:
 
 - **[System Architecture](docs/ARCHITECTURE.md)**: High-level overview of the system, data flow, and security.
+- **[Deployment Guide](docs/DEPLOYMENT.md)**: Step-by-step guide to deploying the full stack (Backend & Web Client).
 - **[Backend Documentation](docs/BACKEND.md)**: Details on Cloud Functions, API Gateway, and Infrastructure as Code (CDKTF).
 - **[Python Monitor Client](docs/CLIENT_PYTHON.md)**: Guide for the desktop application that captures screen content and OCR.
 - **[VBA PowerPoint Client](docs/CLIENT_VBA.md)**: Guide for the PowerPoint integration that pushes slide notes.
@@ -26,28 +27,34 @@ Detailed documentation for each component can be found in the `docs/` directory:
 
 ## 🚀 Quick Start
 
-### 1. Backend Deployment
-The backend is managed via CDK for Terraform (CDKTF).
+### 1. Unified Deployment
+
+The entire system, including backend infrastructure (via CDKTF) and the frontend web client (to Firebase Hosting), can be deployed with a single command.
 
 1.  Navigate to `backend/cdktf`.
-2.  Copy `.env.template` to `.env` and fill in your GCP credentials.
-3.  Run `npx cdktf deploy` to provision the infrastructure.
-4.  Note the **API Gateway URL** from the output.
+2.  Copy `.env.template` to `.env` and fill in your GCP credentials, project IDs, and API keys. This `.env` file is now the **single source of truth** for all environment-specific configurations.
+3.  From the project root directory, run the unified deployment script:
 
-See [Backend Documentation](docs/BACKEND.md) for full details.
+    ```bash
+    ./deploy.sh
+    ```
+
+This script will:
+-   Provision your Google Cloud infrastructure (Cloud Functions, API Gateway, etc.) using CDKTF.
+-   Update local configuration files (`backend/admin_tools/config.py`, `backend/presentation-preloader/config.py`) and test environment variables (`backend/tests/.env.test`) from the CDKTF outputs and your `.env` file.
+-   Build and deploy the `client/web-student` application to Firebase Hosting.
+
+See [Deployment Guide](docs/DEPLOYMENT.md) for comprehensive instructions and troubleshooting.
 
 ### 2. Setup Admin Tools & Create a Course
 
-Before using the clients, set up the admin tools and create a demo course:
+After running `./deploy.sh`, set up the admin tools and create a demo course:
 
 ```bash
 cd backend/admin_tools
 
 # Setup Python environment and authenticate
 ./setup.sh
-# OR manually:
-source venv/bin/activate
-gcloud auth application-default set-quota-project langbridge-presenter
 
 # Create a demo course
 python manage_courses.py update --id "demo" --title "Demo Course" --langs "en-US,zh-CN,yue-HK"
@@ -103,6 +110,8 @@ Run the backend integration tests:
 cd backend/tests
 ./run_tests.sh
 ```
+
+The `run_tests.sh` script will automatically sync configurations (including generating `.env.test`) before running pytest.
 
 ## 🤝 Contributing
 

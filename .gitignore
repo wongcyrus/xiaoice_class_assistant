@@ -10,3 +10,4 @@ node_modules
 .venv/
 .env
 backend/tests/.env.test
+backend/cdktf_outputs.json

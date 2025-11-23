@@ -382,6 +382,11 @@ class LangBridgeApiStack extends TerraformStack {
     new TerraformOutput(this, "hosting-url", {
         value: firebaseHosting.hostingSite.defaultUrl,
     });
+
+    new TerraformOutput(this, "firebase-api-key", {
+      value: firebaseWebAppConfig.apiKey,
+      sensitive: true
+    });
   }
 }
 
