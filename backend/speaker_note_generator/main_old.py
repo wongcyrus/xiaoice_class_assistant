@@ -85,6 +85,7 @@ async def process_presentation(
     return output_path
 
 
+
 def main():
     """Main entry point for the speaker note generator CLI."""
     parser = argparse.ArgumentParser(
@@ -141,3 +142,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
