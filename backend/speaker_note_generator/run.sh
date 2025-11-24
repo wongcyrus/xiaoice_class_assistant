@@ -19,11 +19,14 @@ export GOOGLE_CLOUD_PROJECT="langbridge-presenter"
 export GOOGLE_CLOUD_LOCATION="us-central1"
 export GOOGLE_GENAI_USE_VERTEXAI="True"
 
+# Default region
+export GOOGLE_CLOUD_LOCATION="us-central1"
+
 echo "Starting Speaker Note Generator..."
 echo "Project: $GOOGLE_CLOUD_PROJECT"
 
 # Run the python script
-# We assume the virtual environment is active or dependencies are installed globally/user
+# Arguments are passed directly, so if user provides --region, python argparse handles it.
 python3 main.py "$@"
 
 EXIT_CODE=$?

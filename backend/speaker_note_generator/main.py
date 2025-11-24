@@ -25,14 +25,6 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 from google.adk.agents import LlmAgent
 
-# Import Agents
-# Ensure the path includes the current directory to find 'agents'
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from agents.supervisor import supervisor_agent
-from agents.analyst import analyst_agent
-from agents.overviewer import overviewer_agent
-from agents.designer import designer_agent
-
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -185,42 +177,49 @@ async def run_visual_agent(
         
     return generated_image_bytes
 
-
-# Tool wrapper for Analyst
-async def call_analyst(image_id: str) -> str:
-    """Tool: Analyzes the slide image."""
-    logger.info(f"[Tool] call_analyst invoked for image_id: {image_id}")
-    image = IMAGE_REGISTRY.get(image_id)
-    if not image:
-        return "Error: Image not found."
-    
-    prompt_text = "Analyze this slide image."
-    return await run_stateless_agent(analyst_agent, prompt_text, images=[image])
-
-async def call_writer(
-    analysis: str,
-    previous_context: str,
-    theme: str,
-    global_context: str = "No global context provided." 
-) -> str:
-    """Tool: Writes the script."""
-    logger.info("[Tool] call_writer invoked.")
-    prompt = (
-        f"SLIDE_ANALYSIS:\n{analysis}\n\n"
-        f"PRESENTATION_THEME: {theme}\n"
-        f"PREVIOUS_CONTEXT: {previous_context}\n"
-        f"GLOBAL_CONTEXT: {global_context}\n"
-    )
-    return await run_stateless_agent(writer_agent, prompt)
-
-
 async def process_presentation(
     pptx_path: str,
     pdf_path: str,
     course_id: str = None,
 ):
+    # Late Import to allow env var configuration
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from agents.supervisor import supervisor_agent
+    from agents.analyst import analyst_agent
+    from agents.overviewer import overviewer_agent
+    from agents.designer import designer_agent
+    from agents.writer import writer_agent
+
+    # Tool wrapper for Analyst
+    async def call_analyst(image_id: str) -> str:
+        """Tool: Analyzes the slide image."""
+        logger.info(f"[Tool] call_analyst invoked for image_id: {image_id}")
+        image = IMAGE_REGISTRY.get(image_id)
+        if not image:
+            return "Error: Image not found."
+        
+        prompt_text = "Analyze this slide image."
+        return await run_stateless_agent(analyst_agent, prompt_text, images=[image])
+
+    async def call_writer(
+        analysis: str,
+        previous_context: str,
+        theme: str,
+        global_context: str = "No global context provided." 
+    ) -> str:
+        """Tool: Writes the script."""
+        logger.info("[Tool] call_writer invoked.")
+        prompt = (
+            f"SLIDE_ANALYSIS:\n{analysis}\n\n"
+            f"PRESENTATION_THEME: {theme}\n"
+            f"PREVIOUS_CONTEXT: {previous_context}\n"
+            f"GLOBAL_CONTEXT: {global_context}\n"
+        )
+        return await run_stateless_agent(writer_agent, prompt)
+
     
     logger.info(f"Processing PPTX: {pptx_path}")
+    logger.info(f"Region: {os.environ.get('GOOGLE_CLOUD_LOCATION')}")
     
     # Load files
     prs = Presentation(pptx_path)
@@ -480,6 +479,7 @@ def main():
     parser.add_argument("--course-id", help="Optional: Course ID to fetch theme context")
     parser.add_argument("--progress-file", help="Override path for progress JSON file")
     parser.add_argument("--retry-errors", action="store_true", help="Retry slides previously marked as error")
+    parser.add_argument("--region", help="Google Cloud Region (default: us-central1)", default="us-central1")
 
     args = parser.parse_args()
 
@@ -491,6 +491,12 @@ def main():
         os.environ["SPEAKER_NOTE_PROGRESS_FILE"] = args.progress_file
     if args.retry_errors:
         os.environ["SPEAKER_NOTE_RETRY_ERRORS"] = "true"
+    
+    # Set Google Cloud Location based on arg (override env if provided)
+    if args.region:
+        os.environ["GOOGLE_CLOUD_LOCATION"] = args.region
+    elif "GOOGLE_CLOUD_LOCATION" not in os.environ:
+        os.environ["GOOGLE_CLOUD_LOCATION"] = "us-central1"
 
     asyncio.run(process_presentation(args.pptx, args.pdf, args.course_id))
 
