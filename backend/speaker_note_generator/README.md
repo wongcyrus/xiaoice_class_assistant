@@ -5,11 +5,53 @@ This tool automatically generates or enhances speaker notes for PowerPoint prese
 It takes a PowerPoint (`.pptx`) and its corresponding PDF export (`.pdf`) as input. The PDF provides visual context for AI analysis, while the PPTX is updated with the generated speaker notes.
 
 ## Architecture
-The system employs a multi-agent approach:
-1.  **Supervisor Agent:** Orchestrates the workflow for each slide, deciding whether to audit existing notes, analyze the slide's visual content, or generate new speaker notes. It maintains the overall context of the presentation.
-2.  **Auditor Agent:** Evaluates the quality and usefulness of any existing speaker notes.
-3.  **Analyst Agent:** Analyzes the visual content of a slide (from the PDF image) to extract key topics, details, and visual descriptions.
-4.  **Writer Agent:** Crafts coherent, first-person speaker notes based on the Analyst's insights and the overall presentation context.
+The system employs a sophisticated multi-agent approach, orchestrated in a two-pass system:
+
+### Agents
+1.  **Overviewer Agent (`gemini-3-pro-preview`, Pass 1):** This agent first analyzes *all* PDF slide images to generate a comprehensive `Global Context Guide`. This guide captures the overall narrative, key themes, vocabulary, and desired speaker persona for the entire presentation, ensuring consistency across all generated notes.
+2.  **Supervisor Agent (`gemini-2.5-flash`, Pass 2 Orchestrator):** For each individual slide, the Supervisor directs the workflow. It decides whether to use existing notes (by consulting the Auditor), triggers the Analyst to understand the slide's content, and then requests the Writer to generate or refine speaker notes.
+3.  **Auditor Agent (`gemini-2.5-flash`):** Evaluates the quality and usefulness of any existing speaker notes for a given slide.
+4.  **Analyst Agent (`gemini-3-pro-preview`):** Analyzes the visual and textual content of a single slide image (from the PDF) to extract key topics, detailed information, visual descriptions, and the slide's intent.
+5.  **Writer Agent (`gemini-2.5-flash`):** Crafts coherent, first-person speaker notes. It uses the insights from the Analyst, the `Global Context Guide` (from the Overviewer), and the `Previous Slide Summary` (from the Supervisor) to ensure smooth transitions and consistent tone.
+6.  **Designer Agent (`gemini-3-pro-image-preview`):** Generates a new, high-fidelity, professional-looking slide image. It takes inspiration from the original slide (for branding like logos and colors) and critically, maintains style consistency by referencing the *previously generated slide image*. It converts speaker notes into concise on-slide text (Title + Bullet Points) and enhances any existing diagrams/charts.
+
+### Workflow Diagram
+
+```mermaid
+graph TD
+    A[User Input: PPTX, PDF] --> B(Extract All PDF Slide Images);
+
+    subgraph Pass 1: Global Context Generation
+        B --> C{Overviewer Agent};
+        C --> D[Global Context Guide];
+    end
+
+    subgraph Pass 2: Per-Slide Processing (Loop for each Slide)
+        D --> E{Supervisor Agent};
+        E -- "Existing Notes" --> F{Auditor Agent};
+        F -- "USEFUL" --> G[Use Existing Notes];
+        F -- "USELESS / Needs Notes" --> E;
+        
+        E -- "Current Slide Image" --> H{Analyst Agent};
+        H -- "Slide Analysis" --> I{Writer Agent};
+        I -- "Speaker Notes" --> J[Update PPTX Notes];
+        
+        J -- "Notes & Current Slide" --> K{Designer Agent};
+        K -- "Previous Generated Image (for Style Consistency)" --> K;
+        K -- "Reimagined Slide Image" --> L[Save PNG & Add to New PPTX];
+        
+        L -- "Updated Previous Image" --> K; // Loop for next slide
+        I -- "Updated Previous Notes" --> E; // Loop for next slide
+    end
+
+    L --> M(Output: Enhanced PPTX);
+
+    style C fill:#e6ffe6,stroke:#008000,stroke-width:2px;
+    style E fill:#e6ffe6,stroke:#008000,stroke-width:2px;
+    style I fill:#e6ffe6,stroke:#008000,stroke-width:2px;
+    style K fill:#e6ffe6,stroke:#008000,stroke-width:2px;
+    style M fill:#add8e6,stroke:#000080,stroke-width:2px;
+```
 
 ## Setup
 1.  Navigate to the tool's directory:
