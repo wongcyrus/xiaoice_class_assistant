@@ -49,20 +49,39 @@ def welcome(request):
     
     config = get_config()
     
+    def get_message_for_language(messages_map, lang_code, default_msg):
+        if not messages_map:
+            return default_msg
+            
+        # 1. Try exact match
+        if lang_code in messages_map:
+            return messages_map[lang_code]
+            
+        # 2. Try prefix match (e.g. "en" matches "en-US")
+        for key in messages_map:
+            if key.startswith(lang_code) or lang_code.startswith(key):
+                return messages_map[key]
+                
+        # 3. Fallback to "en" or any english variant
+        if "en" in messages_map:
+            return messages_map["en"]
+        for key in messages_map:
+            if key.startswith("en"):
+                return messages_map[key]
+                
+        return default_msg
+    
     # Use presentation_messages if presentation context,
     # otherwise welcome_messages
     if is_presentation:
         messages = config.get("presentation_messages", {})       
         logger.debug("Using presentation_messages")
-        reply = messages.get(
-            language_code, messages.get("en", "Hello")
-        )
+        reply = get_message_for_language(messages, language_code, "Hello")
     else:
         messages = config.get("welcome_messages", {})        
         logger.debug("Using welcome_messages")    
-        reply = messages.get(
-            language_code, messages.get("en", "Welcome!")
-        )
+        reply = get_message_for_language(messages, language_code, "Welcome!")
+        
     logger.debug("reply_text: %s", reply)
     response = {
         "id": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

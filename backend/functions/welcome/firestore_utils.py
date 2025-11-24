@@ -1,4 +1,7 @@
 from google.cloud import firestore
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_config():
     try:
@@ -9,8 +12,10 @@ def get_config():
         if doc.exists:
             return doc.to_dict()
         else:
+            logger.warning("Config document not found, using default.")
             return get_default_config()
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to load config from Firestore: {e}")
         return get_default_config()
 
 def get_default_config():
@@ -28,7 +33,7 @@ def get_default_config():
                 "What can you help me with?",
                 "How does this work?",
                 "Can you explain more about this topic?"
-            ],
+            ],backend/functions/welcome/firestore_utils.py
             "zh": [
                 "你能帮我做什么？",
                 "这是如何工作的？",
