@@ -119,6 +119,58 @@ class VisualGenerator:
 
         return img_bytes
 
+    def replace_slide_with_visual(
+        self,
+        prs,
+        slide,
+        img_path: str,
+        speaker_notes: str,
+    ) -> bool:
+        """
+        Replace slide content with generated visual and add notes to notes section.
+
+        Args:
+            prs: PowerPoint presentation object
+            slide: PowerPoint slide object to modify
+            img_path: Path to the generated image
+            speaker_notes: Speaker notes to add to the notes section
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Remove all shapes from the slide
+            for shape in list(slide.shapes):
+                sp = shape.element
+                sp.getparent().remove(sp)
+
+            # Get slide dimensions from the presentation
+            slide_width = prs.slide_width
+            slide_height = prs.slide_height
+
+            # Add the reimagined image to fill the entire slide
+            slide.shapes.add_picture(
+                img_path,
+                left=0,
+                top=0,
+                width=slide_width,
+                height=slide_height
+            )
+
+            # Add speaker notes to the notes section
+            if not slide.has_notes_slide:
+                slide.notes_slide
+            slide.notes_slide.notes_text_frame.text = speaker_notes
+
+            logger.info(
+                f"Replaced slide content with reimagined visual."
+            )
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to replace slide with visual: {e}")
+            return False
+
     def add_visual_to_presentation(
         self,
         prs: Presentation,

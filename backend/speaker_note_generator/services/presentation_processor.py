@@ -84,20 +84,21 @@ class PresentationProcessor:
         logger.info(f"Progress file: {self.progress_file}")
         logger.info(f"Retry errors: {self.retry_errors}")
 
-    async def process(self) -> str:
+    async def process(self) -> tuple[str, str]:
         """
         Process the presentation and generate speaker notes.
 
         Returns:
-            Path to the enhanced presentation file
+            Tuple of (notes_only_path, with_visuals_path)
         """
         logger.info(f"Processing PPTX: {self.config.pptx_path}")
         logger.info(f"Region: {os.environ.get('GOOGLE_CLOUD_LOCATION')}")
 
-        # Load files
-        prs = Presentation(self.config.pptx_path)
+        # Load files - create two separate presentations
+        prs_notes = Presentation(self.config.pptx_path)
+        prs_visuals = Presentation(self.config.pptx_path)
         pdf_doc = pymupdf.open(self.config.pdf_path)
-        limit = min(len(prs.slides), len(pdf_doc))
+        limit = min(len(prs_notes.slides), len(pdf_doc))
 
         # Load progress
         progress = load_progress(self.progress_file)
@@ -118,17 +119,22 @@ class PresentationProcessor:
 
         # Process slides
         await self._process_slides(
-            prs, pdf_doc, limit, progress,
+            prs_notes, prs_visuals, pdf_doc, limit, progress,
             supervisor_runner, presentation_theme,
             global_context
         )
 
-        # Save presentation
-        output_path = self.config.output_path
-        prs.save(output_path)
-        logger.info(f"Saved enhanced deck to: {output_path}")
+        # Save both presentations
+        output_path_notes = self.config.output_path
+        output_path_visuals = self.config.output_path_with_visuals
 
-        return output_path
+        prs_notes.save(output_path_notes)
+        logger.info(f"Saved presentation with notes to: {output_path_notes}")
+
+        prs_visuals.save(output_path_visuals)
+        logger.info(f"Saved presentation with visuals to: {output_path_visuals}")
+
+        return output_path_notes, output_path_visuals
 
     async def _get_global_context(
         self,
@@ -205,7 +211,8 @@ class PresentationProcessor:
 
     async def _process_slides(
         self,
-        prs: Presentation,
+        prs_notes: Presentation,
+        prs_visuals: Presentation,
         pdf_doc,
         limit: int,
         progress: Dict[str, Any],
@@ -213,20 +220,21 @@ class PresentationProcessor:
         presentation_theme: str,
         global_context: str,
     ) -> None:
-        """Process all slides in the presentation."""
+        """Process all slides in both presentations."""
         previous_slide_summary = "Start of presentation."
         user_id = "supervisor_user"
         session_id = "supervisor_session"
 
         for i in range(limit):
             slide_idx = i + 1
-            slide = prs.slides[i]
+            slide_notes = prs_notes.slides[i]
+            slide_visuals = prs_visuals.slides[i]
             pdf_page = pdf_doc[i]
 
             logger.info(f"--- Processing Slide {slide_idx} ---")
 
-            # Get existing notes
-            existing_notes = self._get_existing_notes(slide)
+            # Get existing notes (from notes presentation)
+            existing_notes = self._get_existing_notes(slide_notes)
             skey = create_slide_key(slide_idx, existing_notes)
             entry = progress["slides"].get(skey)
 
@@ -243,12 +251,17 @@ class PresentationProcessor:
                 user_id, session_id
             )
 
-            # Update slide notes
+            # Update slide notes in both presentations
             if status == "success":
-                self._update_slide_notes(slide, final_response)
+                # Update notes in notes-only presentation
+                self._update_slide_notes(slide_notes, final_response)
+                
+                # Update notes in visuals presentation
+                self._update_slide_notes(slide_visuals, final_response)
+                
                 previous_slide_summary = final_response[:200]
 
-                # Generate visual
+                # Generate visual and replace slide in visuals presentation
                 img_bytes = await self.visual_generator.generate_visual(
                     slide_idx, slide_image, final_response, self.retry_errors
                 )
@@ -258,8 +271,9 @@ class PresentationProcessor:
                         self.config.visuals_dir,
                         f"slide_{slide_idx}_reimagined.png"
                     )
-                    self.visual_generator.add_visual_to_presentation(
-                        prs, slide_idx, img_path, final_response
+                    # Replace the slide content with the visual
+                    self.visual_generator.replace_slide_with_visual(
+                        prs_visuals, slide_visuals, img_path, final_response
                     )
 
             # Update progress

@@ -80,9 +80,15 @@ async def process_presentation(
     )
 
     # Process presentation
-    output_path = await processor.process()
+    output_path_notes, output_path_visuals = await processor.process()
 
-    return output_path
+    logger.info("\n" + "="*60)
+    logger.info("Processing complete!")
+    logger.info(f"1. Notes only: {output_path_notes}")
+    logger.info(f"2. With visuals: {output_path_visuals}")
+    logger.info("="*60)
+
+    return output_path_notes, output_path_visuals
 
 
 def main():

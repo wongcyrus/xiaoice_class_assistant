@@ -60,8 +60,13 @@ class Config:
 
     @property
     def output_path(self) -> str:
-        """Get the output path for the enhanced presentation."""
-        return self.pptx_path.replace(".pptx", "_enhanced.pptx")
+        """Get the output path for the presentation with notes only."""
+        return self.pptx_path.replace(".pptx", "_with_notes.pptx")
+
+    @property
+    def output_path_with_visuals(self) -> str:
+        """Get the output path for the presentation with visuals."""
+        return self.pptx_path.replace(".pptx", "_with_visuals.pptx")
 
     @property
     def visuals_dir(self) -> str:
