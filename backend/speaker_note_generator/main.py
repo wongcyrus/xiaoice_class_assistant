@@ -221,39 +221,44 @@ async def process_presentation(
     from agents.writer import writer_agent
     from agents.auditor import auditor_agent # Import auditor_agent
 
-    # Tool wrapper for Analyst
-    async def call_analyst(image_id: str) -> str:
-        """Tool: Analyzes the slide image."""
-        logger.info(f"[Tool] call_analyst invoked for image_id: {image_id}")
-        image = IMAGE_REGISTRY.get(image_id)
-        if not image:
-            return "Error: Image not found."
-        
-        prompt_text = "Analyze this slide image."
-        return await run_stateless_agent(analyst_agent, prompt_text, images=[image])
-
-    async def speech_writer(
-        analysis: str,
-        previous_context: str,
-        theme: str,
-        global_context: str = "No global context provided."
-    ) -> str:
-        """Tool: Writes the script."""
-        logger.info("[Tool] speech_writer invoked.")
-        prompt = (
-            f"SLIDE_ANALYSIS:\n{analysis}\n\n"
-            f"PRESENTATION_THEME: {theme}\n"
-            f"PREVIOUS_CONTEXT: {previous_context}\n"
-            f"GLOBAL_CONTEXT: {global_context}\n"
-        )
-        result = await run_stateless_agent(writer_agent, prompt)
-        if not result or not result.strip():
-            logger.warning("[Tool] speech_writer returned empty text. Returning fallback.")
-            return "Error: The writer agent failed to generate a script. Please try again or use a placeholder."
-        return result
+            # Track the last output from the speech_writer tool
+            last_writer_output = ""
     
-    logger.info(f"Processing PPTX: {pptx_path}")
-    logger.info(f"Region: {os.environ.get('GOOGLE_CLOUD_LOCATION')}")
+            # Tool wrapper for Analyst
+            async def call_analyst(image_id: str) -> str:
+                """Tool: Analyzes the slide image."""
+                logger.info(f"[Tool] call_analyst invoked for image_id: {image_id}")
+                image = IMAGE_REGISTRY.get(image_id)
+                if not image:
+                    return "Error: Image not found."
+                
+                prompt_text = "Analyze this slide image."
+                return await run_stateless_agent(analyst_agent, prompt_text, images=[image])
+    
+            async def speech_writer(
+                analysis: str,
+                previous_context: str,
+                theme: str,
+                global_context: str = "No global context provided." 
+            ) -> str:
+                """Tool: Writes the script."""
+                nonlocal last_writer_output # Allow updating outer variable
+                logger.info("[Tool] speech_writer invoked.")
+                prompt = (
+                    f"SLIDE_ANALYSIS:\n{analysis}\n\n"
+                    f"PRESENTATION_THEME: {theme}\n"
+                    f"PREVIOUS_CONTEXT: {previous_context}\n"
+                    f"GLOBAL_CONTEXT: {global_context}\n"
+                )
+                result = await run_stateless_agent(writer_agent, prompt)
+                if not result or not result.strip():
+                    logger.warning("[Tool] speech_writer returned empty text. Returning fallback.")
+                    return "Error: The writer agent failed to generate a script. Please try again or use a placeholder."
+                
+                last_writer_output = result # Capture successful output
+                return result
+            
+            logger.info(f"Processing PPTX: {pptx_path}")    logger.info(f"Region: {os.environ.get('GOOGLE_CLOUD_LOCATION')}")
     
     # Load files
     prs = Presentation(pptx_path)
@@ -406,11 +411,19 @@ async def process_presentation(
 
             final_response = final_response.strip()
             if not final_response: 
-                # Fallback: If writer was called, maybe we can extract the thought process or retry
-                # For now, let's mark as error but log heavily
-                logger.warning(f"Supervisor loop finished with empty response for Slide {slide_idx}. Tool calls might have succeeded but text was lost.")
-                status = "error"
-            else: status = "success"
+                if last_writer_output:
+                    logger.info(f"Supervisor returned empty text, but speech_writer produced content. Using fallback content ({len(last_writer_output)} chars).")
+                    final_response = last_writer_output
+                    status = "success"
+                    last_writer_output = "" # Reset for next slide
+                else:
+                    # Fallback: If writer was called, maybe we can extract the thought process or retry
+                    # For now, let's mark as error but log heavily
+                    logger.warning(f"Supervisor loop finished with empty response for Slide {slide_idx}. Tool calls might have succeeded but text was lost.")
+                    status = "error"
+            else: 
+                status = "success"
+                last_writer_output = "" # Reset for next slide
 
         # 3. Update Notes
         if status == "success":
