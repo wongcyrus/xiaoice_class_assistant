@@ -103,6 +103,24 @@ $env:GOOGLE_CLOUD_LOCATION = 'global'
 *   `--progress-file` (Optional): Override the default progress tracking file location (default: `speaker_note_progress.json` in the same directory as the PPTX).
 *   `--retry-errors` (Optional): Force regeneration of slides that were previously successful. By default, only slides with errors or missing notes are reprocessed.
 
+## Technical Implementation Details
+
+### Supervisor "Silent Finish" Fallback
+A common issue in Agentic workflows is the "Silent Finish," where a Supervisor agent calls a tool (e.g., `speech_writer`), receives the correct text output, but then terminates the turn without explicitly repeating that text to the user.
+
+To solve this, we implement a **Last Tool Output Fallback** pattern:
+1.  The `speech_writer` tool function captures its generated text into a scoped variable (`last_writer_output`) every time it runs successfully.
+2.  If the Supervisor loop finishes execution but produces **empty** final text, the system checks if `last_writer_output` contains data.
+3.  If yes, the system infers that the Supervisor intended to return this content and uses the captured text as the final speaker note.
+
+This ensures robustness against model unpredictability, especially with faster models like `gemini-2.5-flash`.
+
+### Image Generation Skip Logic
+*   **Stable Caching:** Generated images are named `slide_{index}_reimagined.png`.
+*   **Skip Check:** Before calling the expensive Image Generation API, the system checks if this file already exists.
+*   **Forced Retry:** The `--retry-errors` flag (or deleting the file) bypasses this check to force regeneration.
+*   **Hash Removal:** We explicitly do *not* use the speaker note hash in the filename to allow for easier manual caching and to prevent minor text variations from triggering unnecessary image costs.
+
 ## Output
 The tool will generate a new PowerPoint file with `_enhanced.pptx` appended to the original filename (e.g., `my_presentation_enhanced.pptx`). This new file will contain updated or newly generated speaker notes for each slide.
 

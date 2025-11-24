@@ -221,12 +221,11 @@ async def process_presentation(
     from agents.writer import writer_agent
     from agents.auditor import auditor_agent # Import auditor_agent
 
-            # Track the last output from the speech_writer tool
-            last_writer_output = ""
-    
-            # Tool wrapper for Analyst
-            async def call_analyst(image_id: str) -> str:
-                """Tool: Analyzes the slide image."""
+                # Track the last output from the speech_writer tool
+                last_writer_output = ""
+            
+                # Tool wrapper for Analyst
+                async def call_analyst(image_id: str) -> str:                """Tool: Analyzes the slide image."""
                 logger.info(f"[Tool] call_analyst invoked for image_id: {image_id}")
                 image = IMAGE_REGISTRY.get(image_id)
                 if not image:
@@ -235,16 +234,15 @@ async def process_presentation(
                 prompt_text = "Analyze this slide image."
                 return await run_stateless_agent(analyst_agent, prompt_text, images=[image])
     
-            async def speech_writer(
-                analysis: str,
-                previous_context: str,
-                theme: str,
-                global_context: str = "No global context provided." 
-            ) -> str:
-                """Tool: Writes the script."""
-                nonlocal last_writer_output # Allow updating outer variable
-                logger.info("[Tool] speech_writer invoked.")
-                prompt = (
+                async def speech_writer(
+                    analysis: str,
+                    previous_context: str,
+                    theme: str,
+                    global_context: str = "No global context provided." 
+                ) -> str:
+                    """Tool: Writes the script."""
+                    nonlocal last_writer_output # Allow updating outer variable
+                    logger.info("[Tool] speech_writer invoked.")                prompt = (
                     f"SLIDE_ANALYSIS:\n{analysis}\n\n"
                     f"PRESENTATION_THEME: {theme}\n"
                     f"PREVIOUS_CONTEXT: {previous_context}\n"
