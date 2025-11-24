@@ -227,18 +227,12 @@ function App() {
       </header>
       
       <div className="sub-header">
-        {currentPptFile && (
-            <div className="current-presentation-info">
-                📄 {currentPptFile} {currentSlideNumber && <span>(Slide {currentSlideNumber})</span>}
-            </div>
-        )}
         <div className="filter-controls">
             <select 
                 value={pptFilter}
                 onChange={(e) => setPptFilter(e.target.value)}
                 className="ppt-filter-select"
             >
-                <option value="">All Presentations</option>
                 {uniquePptFiles.map(file => (
                     <option key={file} value={file}>{file}</option>
                 ))}

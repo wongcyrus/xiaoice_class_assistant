@@ -251,8 +251,6 @@ def config(request):
             if broadcast_payload["languages"]:
                 try:
                     # TARGET THE CLIENT PROJECT
-                    # The client is connected to 'xiaoice-class-assistant' project.
-                    # The database there is named '(default)'.
                     broadcast_db = firestore.Client(
                         project=os.environ.get("CLIENT_FIRESTORE_PROJECT_ID", "ai-presenter-client"),
                         database=os.environ.get("CLIENT_FIRESTORE_DATABASE_ID", "(default)") 
@@ -260,10 +258,47 @@ def config(request):
                     # Use course_id as document ID if available, else 'current'
                     doc_id = course_id if course_id else 'current'
                     broadcast_ref = broadcast_db.collection('presentation_broadcast').document(doc_id)
-                    broadcast_ref.set(broadcast_payload)
                     
-                    # Add to history (subcollection)
-                    broadcast_ref.collection('messages').add(broadcast_payload)
+                    # Read current state for robust deduplication
+                    doc_snap = broadcast_ref.get()
+                    last_message_id = None
+                    prev_ppt = None
+                    prev_page = None
+                    
+                    if doc_snap.exists:
+                        data = doc_snap.to_dict()
+                        prev_ppt = data.get('ppt_filename')
+                        prev_page = str(data.get('page_number', ''))
+                        last_message_id = data.get('last_message_id')
+                    
+                    curr_ppt = broadcast_payload.get('ppt_filename')
+                    curr_page = str(broadcast_payload.get('page_number', ''))
+                    
+                    # Check for duplicate
+                    # Only treat as duplicate if both fields are present and match
+                    is_duplicate = False
+                    if curr_ppt and prev_ppt and curr_page and prev_page:
+                        if curr_ppt == prev_ppt and curr_page == prev_page:
+                            is_duplicate = True
+                            
+                    if is_duplicate and last_message_id:
+                        logger.info(f"Duplicate slide detected. Updating existing message: {last_message_id}")
+                        # Update existing history doc
+                        broadcast_ref.collection('messages').document(last_message_id).set(broadcast_payload, merge=True)
+                        
+                        # Keep the same ID for the parent doc update
+                        broadcast_payload['last_message_id'] = last_message_id
+                    else:
+                        # Create new history doc
+                        new_msg_ref = broadcast_ref.collection('messages').document()
+                        new_msg_ref.set(broadcast_payload)
+                        
+                        logger.info(f"New slide. Created message: {new_msg_ref.id}")
+                        # Save new ID to parent doc
+                        broadcast_payload['last_message_id'] = new_msg_ref.id
+
+                    # Update the parent document (current state)
+                    broadcast_ref.set(broadcast_payload)
                     
                     logger.info(f"Successfully broadcasted presentation updates to xiaoice-class-assistant (doc: {doc_id})")
                 except Exception as b_e:

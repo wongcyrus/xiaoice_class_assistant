@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import requests
+from pptx import Presentation
 
 # Add backend root to sys.path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -127,6 +128,33 @@ LECTURE_2_SLIDES = [
 
 # -----------------
 
+def generate_pptx(filename, slides_data):
+    """Generates a dummy PPTX file with speaker notes."""
+    prs = Presentation()
+    
+    # Use 'Title Only' layout (index 5) which definitely has a title placeholder
+    slide_layout = prs.slide_layouts[5] 
+    
+    for slide_info in slides_data:
+        slide = prs.slides.add_slide(slide_layout)
+        
+        # Set title
+        if slide.shapes.title:
+            slide.shapes.title.text = f"Slide {slide_info['slide_number']}"
+        
+        # Add notes
+        notes_slide = slide.notes_slide
+        text_frame = notes_slide.notes_text_frame
+        text_frame.text = slide_info['speaker_notes']
+        
+    # Ensure seeds directory exists
+    seeds_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(seeds_dir, filename)
+    
+    prs.save(file_path)
+    logger.info(f"✅ Generated PPTX: {file_path}")
+    return file_path
+
 def create_demo_course():
     """Creates the demo course in Firestore using admin tools."""
     logger.info(f"Creating demo course: {DEMO_COURSE_ID}...")
@@ -240,6 +268,10 @@ def main():
         create_demo_course()
     else:
         logger.info("Skipping course creation as requested.")
+        
+    # Generate PPTX files
+    generate_pptx(LECTURE_1_PPT_FILENAME, LECTURE_1_SLIDES)
+    generate_pptx(LECTURE_2_PPT_FILENAME, LECTURE_2_SLIDES)
         
     simulate_presentation(final_api_url, final_api_key, LECTURE_1_SLIDES, LECTURE_1_PPT_FILENAME)
     logger.info("\n--- Starting Second Lecture ---")
