@@ -107,6 +107,11 @@ async def run_stateless_agent(
         logger.error(f"Failed to extract session id: {sid_err}; falling back to generated id.")
         resolved_session_id = f"fallback_{user_id}"
 
+    print(f"\n┌── [Agent: {agent.name}]")
+    print(f"│ Task: {prompt.strip()[:500].replace(chr(10), ' ') + ('...' if len(prompt) > 500 else '')}")
+    if image:
+        print(f"│ [Image Attached]")
+
     response_text = ""
     try:
         # Run agent
@@ -122,7 +127,8 @@ async def run_stateless_agent(
     except Exception as e:
         logger.error(f"Error running agent {agent.name}: {e}")
         return f"Error: {e}"
-        
+    
+    print(f"└-> Response: {response_text.strip()[:500].replace(chr(10), ' ') + ('...' if len(response_text) > 500 else '')}")
     return response_text.strip()
 
 # Tool wrapper for Analyst
@@ -300,9 +306,16 @@ async def process_presentation(
                 new_message=content,
             ):
                 if getattr(event, "content", None) and event.content.parts:
-                     part = event.content.parts[0]
-                     text = getattr(part, "text", "") or ""
-                     final_response += text
+                    for part in event.content.parts:
+                        # Check for Function Call
+                        fn_call = getattr(part, "function_call", None)
+                        if fn_call:
+                            print(f"\n[Supervisor] 📞 calling tool: {fn_call.name}")
+                            # print(f"             Args: {fn_call.args}") # Args can be verbose
+
+                        # Check for Text
+                        text = getattr(part, "text", "") or ""
+                        final_response += text
         except Exception as e:
             logger.error(f"Error in supervisor loop: {e}")
 
