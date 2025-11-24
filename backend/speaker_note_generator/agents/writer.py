@@ -5,7 +5,7 @@ from . import prompt
 
 writer_agent = LlmAgent(
     name="speech_writer",
-    model="gemini-3-pro-preview", # Use gemini-3-pro-preview for high quality speaker note generation
+    model="gemini-2.5-flash", # Revert to Flash for stability
     description="A speech writer agent that generates presentation scripts with context.",
     instruction=prompt.WRITER_PROMPT
 )

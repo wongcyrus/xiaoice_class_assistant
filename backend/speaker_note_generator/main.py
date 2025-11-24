@@ -106,9 +106,16 @@ async def run_stateless_agent(
                      # Only extract text parts
                      txt = getattr(part, "text", "") or ""
                      response_text += txt
+            else:
+                 # Debug: Print raw event if no content parts found
+                 # print(f"DEBUG: Event with no content parts: {event}")
+                 pass
     except Exception as e:
         logger.error(f"Error running agent {agent.name}: {e}")
         return f"Error: {e}"
+    
+    if not response_text.strip():
+        print(f"⚠️ WARNING: Agent {agent.name} returned empty text.")
     
     print(f"└-> Response: {response_text.strip()[:500].replace(chr(10), ' ') + ('...' if len(response_text) > 500 else '')}")
     return response_text.strip()
