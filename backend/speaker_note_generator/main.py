@@ -348,11 +348,11 @@ async def process_presentation(
             # 4. VISUALIZATION STEP (New)
             logger.info(f"--- Processing Visual for Slide {slide_idx} ---")
             
-            # Create a hash of the generated notes for unique image filename
-            notes_hash = hashlib.sha256(final_response.encode("utf-8")).hexdigest()[:8]
+            # Simplified filename to ensure stable skipping if file exists
+            # We no longer use the hash in the filename for simpler caching during dev
             vis_dir = os.path.join(os.path.dirname(pptx_path), "visuals")
             os.makedirs(vis_dir, exist_ok=True)
-            img_filename = f"slide_{slide_idx}_{notes_hash}_reimagined.png"
+            img_filename = f"slide_{slide_idx}_reimagined.png"
             img_path = os.path.join(vis_dir, img_filename)
 
             img_bytes = None
