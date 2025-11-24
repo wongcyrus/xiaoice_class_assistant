@@ -184,6 +184,27 @@ async def run_visual_agent(
         
     return generated_image_bytes
 
+# --- Progress Tracking Helpers ---
+def load_progress(path: str) -> Dict[str, Any]:
+    if not os.path.exists(path): return {"slides": {}}
+    try:
+        with open(path, "r", encoding="utf-8") as f: return json.load(f)
+    except: return {"slides": {}}
+
+def save_progress(path: str, data: Dict[str, Any]):
+    try:
+        target_dir = os.path.dirname(path) or "."
+        tmp_fd, tmp_path = tempfile.mkstemp(prefix="sn_prog_", suffix=".json", dir=target_dir)
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        os.replace(tmp_path, path)
+    except Exception as e:
+        logger.error(f"Failed to save progress file: {e}")
+
+def slide_key(index: int, notes: str) -> str:
+    h = hashlib.sha256((notes or "").encode("utf-8")).hexdigest()[:8]
+    return f"slide_{index}_{h}"
+
 async def process_presentation(
     pptx_path: str,
     pdf_path: str,
@@ -238,6 +259,12 @@ async def process_presentation(
     pdf_doc = pymupdf.open(pdf_path)
     limit = min(len(prs.slides), len(pdf_doc))
 
+    # --- Progress Tracking Setup ---
+    progress_file = os.environ.get("SPEAKER_NOTE_PROGRESS_FILE") or os.getenv("SPEAKER_NOTE_PROGRESS_FILE")
+    if not progress_file:
+        progress_file = os.path.join(os.path.dirname(pptx_path), "speaker_note_progress.json")
+    retry_errors = os.environ.get("SPEAKER_NOTE_RETRY_ERRORS", "false").lower() == "true"
+
     progress = load_progress(progress_file)
 
     # Check if global_context already exists in progress file
@@ -261,6 +288,54 @@ async def process_presentation(
         
         progress["global_context"] = global_context
         save_progress(progress_file, progress)
+    
+    # Configure Supervisor Tools
+    supervisor_agent.tools = [
+        AgentTool(agent=auditor_agent), # Restore auditor tool
+        call_analyst, 
+        speech_writer # Use the renamed function
+    ]
+
+    # Initialize Supervisor Runner
+    supervisor_runner = InMemoryRunner(
+        agent=supervisor_agent,
+        app_name="supervisor"
+    )
+
+    # Global Context
+    presentation_theme = "General Presentation"
+    if course_id:
+        try:
+            # Dynamically import to avoid circular imports
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
+            if project_root not in sys.path:
+                sys.path.append(project_root)
+            from presentation_preloader.utils import course_utils
+            course_config = course_utils.get_course_config(course_id)
+            if course_config:
+                presentation_theme = (
+                    course_config.get("description")
+                    or course_config.get("name")
+                    or f"Course {course_id}"
+                )
+        except Exception as e:
+            logger.warning(f"Failed to fetch course config for {course_id}: {e}")
+
+    previous_slide_summary = "Start of presentation."
+
+    user_id = "supervisor_user"
+    session_id = "supervisor_session" 
+    
+    # Create Supervisor Session
+    await supervisor_runner.session_service.create_session(
+        app_name="supervisor",
+        user_id=user_id,
+        session_id=session_id
+    )
+
+    logger.info(f"Using progress file: {progress_file} (retry_errors={retry_errors})")
 
     # 1. Pass 2: Slide Loop
     previous_reimagined_image: Optional[Image.Image] = None
@@ -387,7 +462,7 @@ async def process_presentation(
                     f"Speaker Notes: \"{final_response}\"\n\n"
                     f"TASK: Generate the high-fidelity slide image now.\n"
                     f"CONTEXT: {logo_instruction}\n"
-                )
+                ) #
                 
                 designer_images = [slide_image]
                 if previous_reimagined_image:
