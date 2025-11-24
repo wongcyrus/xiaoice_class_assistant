@@ -417,32 +417,61 @@ async def process_presentation(
             previous_slide_summary = final_response[:200]
 
             # 4. VISUALIZATION STEP (New)
-            # Run Designer Agent to recreate slide
-            logger.info(f"--- Generating Visual for Slide {slide_idx} ---")
+            logger.info(f"--- Processing Visual for Slide {slide_idx} ---")
             
-            designer_prompt_text = (
-                f"IMAGE 1: Original Slide Image provided.\n"
-                f"IMAGE 2: {'Style Reference (Previous Slide) provided.' if previous_reimagined_image else 'N/A'}\n"
-                f"Speaker Notes: \"{final_response}\"\n\n"
-                f"Generate the high-fidelity slide image now."
-            )
-            
-            designer_images = [slide_image]
-            if previous_reimagined_image:
-                designer_images.append(previous_reimagined_image)
+            # Create a hash of the generated notes for unique image filename
+            notes_hash = hashlib.sha256(final_response.encode("utf-8")).hexdigest()[:8]
+            vis_dir = os.path.join(os.path.dirname(pptx_path), "visuals")
+            os.makedirs(vis_dir, exist_ok=True)
+            img_filename = f"slide_{slide_idx}_{notes_hash}_reimagined.png"
+            img_path = os.path.join(vis_dir, img_filename)
 
-            img_bytes = await run_visual_agent(
-                designer_agent,
-                designer_prompt_text,
-                images=designer_images
-            )
+            img_bytes = None
+
+            if os.path.exists(img_path) and not retry_errors: # Skip if exists and not retrying errors
+                logger.info(f"Visual already exists for Slide {slide_idx} ({img_filename}). Skipping generation.")
+                try:
+                    with open(img_path, "rb") as f:
+                        img_bytes = f.read()
+                    # Update Previous Image for next iteration (Style Consistency)
+                    try:
+                         previous_reimagined_image = Image.open(io.BytesIO(img_bytes))
+                    except Exception as img_err:
+                         logger.warning(f"Could not load generated image for next iteration context: {img_err}")
+                         previous_reimagined_image = None
+                except Exception as e:
+                    logger.error(f"Failed to load existing image {img_path}: {e}")
+                    img_bytes = None # Force re-generation if load fails
+            
+            if img_bytes is None: # Only generate if not skipped or load failed
+                logger.info(f"--- Generating Visual for Slide {slide_idx} ---")
+                
+                logo_instruction = ""
+                if slide_idx == 1:
+                    logo_instruction = "You MUST prominently feature the logo/branding from IMAGE 1 (Original Draft Slide) in an appropriate corner."
+                else:
+                    logo_instruction = "DO NOT include any logos or branding elements. Focus solely on content."
+
+                designer_prompt_text = (
+                    f"IMAGE 1: Original Slide Image provided.\n"
+                    f"IMAGE 2: {'Style Reference (Previous Slide) provided.' if previous_reimagined_image else 'N/A'}\n"
+                    f"Speaker Notes: \"{final_response}\"\n\n"
+                    f"TASK: Generate the high-fidelity slide image now.\n"
+                    f"CONTEXT: {logo_instruction}\n"
+                )
+                
+                designer_images = [slide_image]
+                if previous_reimagined_image:
+                    designer_images.append(previous_reimagined_image)
+
+                img_bytes = await run_visual_agent(
+                    designer_agent,
+                    designer_prompt_text,
+                    images=designer_images
+                )
             
             if img_bytes:
-                # Save to disk
-                vis_dir = os.path.join(os.path.dirname(pptx_path), "visuals")
-                os.makedirs(vis_dir, exist_ok=True)
-                img_filename = f"slide_{slide_idx}_reimagined.png"
-                img_path = os.path.join(vis_dir, img_filename)
+                # Save to disk if newly generated or re-saved for consistency
                 try:
                     with open(img_path, "wb") as f:
                         f.write(img_bytes)
