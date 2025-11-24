@@ -11,6 +11,10 @@ import asyncio
 import logging
 import os
 import sys
+import io
+import json
+import hashlib
+import tempfile
 from typing import Dict, Any
 
 import pymupdf  # fitz
@@ -38,14 +42,41 @@ logger = logging.getLogger(__name__)
 # Global registry for images
 IMAGE_REGISTRY: Dict[str, Image.Image] = {}
 
-async def run_stateless_agent(agent: LlmAgent, prompt: str, image: Image.Image = None) -> str:
+async def run_stateless_agent(
+    agent: LlmAgent,
+    prompt: str,
+    image: Image.Image = None,
+) -> str:
     """Helper to run a stateless single-turn agent."""
     runner = InMemoryRunner(agent=agent, app_name=agent.name)
     user_id = "system_user"
     
     parts = [types.Part.from_text(text=prompt)]
     if image:
-        parts.append(types.Part.from_image(image=image))
+        # Attempt to build an image part across library versions.
+        try:
+            if hasattr(types.Part, 'from_image'):
+                parts.append(types.Part.from_image(image=image))
+            else:
+                buf = io.BytesIO()
+                image.save(buf, format='PNG')
+                img_bytes = buf.getvalue()
+                if hasattr(types.Part, 'from_bytes'):
+                    parts.append(
+                        types.Part.from_bytes(
+                            data=img_bytes,
+                            mime_type='image/png'
+                        )
+                    )
+                else:
+                    parts.append(
+                        types.Part(
+                            mime_type='image/png',
+                            data=img_bytes
+                        )
+                    )
+        except Exception as e:
+            logger.error(f"Failed to attach image part: {e}")
 
     content = types.Content(role='user', parts=parts)
     
@@ -54,13 +85,34 @@ async def run_stateless_agent(agent: LlmAgent, prompt: str, image: Image.Image =
         app_name=agent.name,
         user_id=user_id,
     )
-    
+    # Safely determine session id across possible ADK versions
+    def _extract_session_id(sess):
+        for attr in ("session_id", "id"):
+            if hasattr(sess, attr):
+                return getattr(sess, attr)
+        nested = getattr(sess, "session", None)
+        if nested:
+            for attr in ("session_id", "id"):
+                if hasattr(nested, attr):
+                    return getattr(nested, attr)
+        # As a last resort, look for any attribute ending with '_id'
+        for name in dir(sess):
+            if name.endswith('_id'):
+                return getattr(sess, name)
+        raise AttributeError("Could not determine session id on object: " + repr(sess))
+
+    try:
+        resolved_session_id = _extract_session_id(session)
+    except Exception as sid_err:
+        logger.error(f"Failed to extract session id: {sid_err}; falling back to generated id.")
+        resolved_session_id = f"fallback_{user_id}"
+
     response_text = ""
     try:
         # Run agent
         for event in runner.run(
             user_id=user_id,
-            session_id=session.session_id,
+            session_id=resolved_session_id,
             new_message=content,
         ):
             if getattr(event, "content", None) and event.content.parts:
@@ -85,7 +137,11 @@ async def call_analyst(image_id: str) -> str:
     return await run_stateless_agent(analyst_agent, prompt_text, image=image)
 
 
-async def process_presentation(pptx_path: str, pdf_path: str, course_id: str = None):
+async def process_presentation(
+    pptx_path: str,
+    pdf_path: str,
+    course_id: str = None,
+):
     
     logger.info(f"Processing PPTX: {pptx_path}")
     
@@ -95,30 +151,38 @@ async def process_presentation(pptx_path: str, pdf_path: str, course_id: str = N
     limit = min(len(prs.slides), len(pdf_doc))
     
     # Configure Supervisor Tools
-    # We append the function tool 'call_analyst' to the existing list of AgentTools
+    # Append the function tool 'call_analyst' to the existing list if missing
     # supervisor_agent.tools is a list
     if call_analyst not in supervisor_agent.tools:
         supervisor_agent.tools.append(call_analyst)
 
     # Initialize Supervisor Runner
     supervisor_runner = InMemoryRunner(
-        agent=supervisor_agent, 
+        agent=supervisor_agent,
         app_name="supervisor"
     )
 
     # Global Context
-    presentation_theme = "General Presentation" 
+    presentation_theme = "General Presentation"
     if course_id:
         try:
             # Dynamically import to avoid circular imports
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
             if project_root not in sys.path:
-                 sys.path.append(project_root)
+                sys.path.append(project_root)
             from presentation_preloader.utils import course_utils
             course_config = course_utils.get_course_config(course_id)
             if course_config:
-                presentation_theme = course_config.get("description") or course_config.get("name") or f"Course {course_id}"
-                logger.info(f"Set Presentation Theme from Course: {presentation_theme}")
+                presentation_theme = (
+                    course_config.get("description")
+                    or course_config.get("name")
+                    or f"Course {course_id}"
+                )
+                logger.info(
+                    f"Set Presentation Theme from Course: {presentation_theme}"
+                )
         except Exception as e:
             logger.warning(f"Failed to fetch course config for {course_id}: {e}")
 
@@ -134,6 +198,49 @@ async def process_presentation(pptx_path: str, pdf_path: str, course_id: str = N
         session_id=session_id
     )
 
+    # --- Progress Tracking Setup ---
+    progress_file = os.environ.get("SPEAKER_NOTE_PROGRESS_FILE") or os.getenv("SPEAKER_NOTE_PROGRESS_FILE")
+    # Allow overriding via environment; fallback default next to PPTX
+    if not progress_file:
+        progress_file = os.path.join(os.path.dirname(pptx_path), "speaker_note_progress.json")
+    retry_errors = os.environ.get("SPEAKER_NOTE_RETRY_ERRORS", "false").lower() == "true"
+
+    def load_progress(path: str) -> Dict[str, Any]:
+        if not os.path.exists(path):
+            return {"slides": {}}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load progress file {path}: {e}")
+            return {"slides": {}}
+
+    def save_progress(path: str, data: Dict[str, Any]):
+        """Persist progress atomically; ensure temp file created on same volume.
+
+        Windows cannot move files across different drives with os.replace; creating
+        the temporary file in the target directory avoids WinError 17.
+        """
+        try:
+            target_dir = os.path.dirname(path) or "."
+            tmp_fd, tmp_path = tempfile.mkstemp(
+                prefix="sn_prog_",
+                suffix=".json",
+                dir=target_dir,
+            )
+            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp_path, path)
+        except Exception as e:
+            logger.error(f"Failed to save progress file {path}: {e}")
+
+    def slide_key(index: int, notes: str) -> str:
+        h = hashlib.sha256((notes or "").encode("utf-8")).hexdigest()[:8]
+        return f"slide_{index}_{h}"
+
+    progress = load_progress(progress_file)
+    logger.info(f"Using progress file: {progress_file} (retry_errors={retry_errors})")
+
     for i in range(limit):
         slide_idx = i + 1
         slide = prs.slides[i]
@@ -144,7 +251,24 @@ async def process_presentation(pptx_path: str, pdf_path: str, course_id: str = N
         # 1. Setup Slide Context
         existing_notes = ""
         if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
-             existing_notes = slide.notes_slide.notes_text_frame.text.strip()
+            existing_notes = slide.notes_slide.notes_text_frame.text.strip()
+
+        skey = slide_key(slide_idx, existing_notes)
+        entry = progress["slides"].get(skey)
+
+        # Skip slide if already successful and not retrying errors
+        if entry and entry.get("status") == "success" and not retry_errors:
+            final_response = entry.get("note", "")
+            logger.info(f"Skipping slide {slide_idx}; already generated (progress file)")
+            # Ensure note written (in case PPTX was reverted)
+            try:
+                if not slide.has_notes_slide:
+                    slide.notes_slide  # may initialize
+                slide.notes_slide.notes_text_frame.text = final_response
+            except Exception as e:
+                logger.error(f"Could not reapply saved note: {e}")
+            previous_slide_summary = final_response[:200]
+            continue
 
         # Register Image
         image_id = f"slide_{slide_idx}"
@@ -183,7 +307,10 @@ async def process_presentation(pptx_path: str, pdf_path: str, course_id: str = N
             logger.error(f"Error in supervisor loop: {e}")
 
         final_response = final_response.strip()
-        logger.info(f"Final Note for Slide {slide_idx}: {final_response[:50]}...")
+        status = "success"
+        if not final_response or final_response.lower().startswith("error:"):
+            status = "error"
+        logger.info(f"Final Note for Slide {slide_idx}: {final_response[:50]}... (status={status})")
         
         # 4. Update PPTX
         if not slide.has_notes_slide:
@@ -200,6 +327,16 @@ async def process_presentation(pptx_path: str, pdf_path: str, course_id: str = N
         # 5. Update Context
         previous_slide_summary = final_response[:200]
 
+        # Update progress entry and persist after each slide
+        progress["slides"][skey] = {
+            "slide_index": slide_idx,
+            "existing_notes_hash": skey.split("_")[-1],
+            "original_notes": existing_notes,
+            "note": final_response,
+            "status": status,
+        }
+        save_progress(progress_file, progress)
+
         # Cleanup Image
         del IMAGE_REGISTRY[image_id]
 
@@ -213,12 +350,20 @@ def main():
     parser.add_argument("--pptx", required=True, help="Path to input PPTX")
     parser.add_argument("--pdf", required=True, help="Path to input PDF")
     parser.add_argument("--course-id", help="Optional: Course ID to fetch theme context")
-    
+    parser.add_argument("--progress-file", help="Override path for progress JSON file")
+    parser.add_argument("--retry-errors", action="store_true", help="Retry slides previously marked as error")
+
     args = parser.parse_args()
-    
+
     if not os.path.exists(args.pptx) or not os.path.exists(args.pdf):
         print("Error: Input files not found.")
         return
+
+    # Allow CLI args to override environment defaults
+    if args.progress_file:
+        os.environ["SPEAKER_NOTE_PROGRESS_FILE"] = args.progress_file
+    if args.retry_errors:
+        os.environ["SPEAKER_NOTE_RETRY_ERRORS"] = "true"
 
     asyncio.run(process_presentation(args.pptx, args.pdf, args.course_id))
 
