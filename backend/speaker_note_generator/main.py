@@ -238,100 +238,29 @@ async def process_presentation(
     pdf_doc = pymupdf.open(pdf_path)
     limit = min(len(prs.slides), len(pdf_doc))
 
-    # 0. PASS 1: Global Context Generation
-    logger.info("--- Pass 1: Generating Global Context ---")
-    all_images = []
-    for i in range(limit):
-        pix = pdf_doc[i].get_pixmap(dpi=75) 
-        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-        all_images.append(img)
-    
-    global_context = await run_stateless_agent(
-        overviewer_agent,
-        "Here are the slides for the entire presentation. Analyze them.",
-        images=all_images
-    )
-    logger.info(f"Global Context Generated: {len(global_context)} chars")
-    
-    # Configure Supervisor Tools
-    supervisor_agent.tools = [
-        AgentTool(agent=auditor_agent), # Restore auditor tool
-        call_analyst, 
-        speech_writer # Use the renamed function
-    ]
-
-    # Initialize Supervisor Runner
-    supervisor_runner = InMemoryRunner(
-        agent=supervisor_agent,
-        app_name="supervisor"
-    )
-
-    # Global Context
-    presentation_theme = "General Presentation"
-    if course_id:
-        try:
-            # Dynamically import to avoid circular imports
-            project_root = os.path.dirname(
-                os.path.dirname(os.path.abspath(__file__))
-            )
-            if project_root not in sys.path:
-                sys.path.append(project_root)
-            from presentation_preloader.utils import course_utils
-            course_config = course_utils.get_course_config(course_id)
-            if course_config:
-                presentation_theme = (
-                    course_config.get("description")
-                    or course_config.get("name")
-                    or f"Course {course_id}"
-                )
-        except Exception as e:
-            logger.warning(f"Failed to fetch course config for {course_id}: {e}")
-
-    previous_slide_summary = "Start of presentation."
-
-    user_id = "supervisor_user"
-    session_id = "supervisor_session" 
-    
-    # Create Supervisor Session
-    await supervisor_runner.session_service.create_session(
-        app_name="supervisor",
-        user_id=user_id,
-        session_id=session_id
-    )
-
-    # --- Progress Tracking Setup ---
-    progress_file = os.environ.get("SPEAKER_NOTE_PROGRESS_FILE") or os.getenv("SPEAKER_NOTE_PROGRESS_FILE")
-    if not progress_file:
-        progress_file = os.path.join(os.path.dirname(pptx_path), "speaker_note_progress.json")
-    retry_errors = os.environ.get("SPEAKER_NOTE_RETRY_ERRORS", "false").lower() == "true"
-
-    def load_progress(path: str) -> Dict[str, Any]:
-        if not os.path.exists(path): return {"slides": {}}
-        try:
-            with open(path, "r", encoding="utf-8") as f: return json.load(f)
-        except: return {"slides": {}}
-
-    def save_progress(path: str, data: Dict[str, Any]):
-        try:
-            target_dir = os.path.dirname(path) or "."
-            tmp_fd, tmp_path = tempfile.mkstemp(prefix="sn_prog_", suffix=".json", dir=target_dir)
-            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            os.replace(tmp_path, path)
-        except Exception as e:
-            logger.error(f"Failed to save progress file: {e}")
-
-    def slide_key(index: int, notes: str) -> str:
-        h = hashlib.sha256((notes or "").encode("utf-8")).hexdigest()[:8]
-        return f"slide_{index}_{h}"
-
     progress = load_progress(progress_file)
-    if "global_context" not in progress:
+
+    # Check if global_context already exists in progress file
+    if "global_context" in progress and progress["global_context"] and len(progress["global_context"]) > 50 and not retry_errors:
+        global_context = progress["global_context"]
+        logger.info("Using cached Global Context from progress file.")
+    else:
+        logger.info("--- Pass 1: Generating Global Context ---")
+        all_images = []
+        for i in range(limit):
+            pix = pdf_doc[i].get_pixmap(dpi=75) 
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            all_images.append(img)
+        
+        global_context = await run_stateless_agent(
+            overviewer_agent,
+            "Here are the slides for the entire presentation. Analyze them.",
+            images=all_images
+        )
+        logger.info(f"Global Context Generated: {len(global_context)} chars")
+        
         progress["global_context"] = global_context
         save_progress(progress_file, progress)
-    else:
-        if progress["global_context"] and len(progress["global_context"]) > 50:
-             global_context = progress["global_context"]
 
     # 1. Pass 2: Slide Loop
     previous_reimagined_image: Optional[Image.Image] = None
