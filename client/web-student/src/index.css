@@ -360,3 +360,26 @@ select {
         padding: 10px 14px;
     }
 }
+
+/* New styles for slide images */
+.slide-image-wrapper {
+    margin-bottom: 10px; /* Space between image and text bubble */
+    width: 100%;
+    max-width: 100%;
+    display: flex; /* To center the image */
+    justify-content: center;
+    border-radius: 8px; /* Optional: subtle rounded corners */
+    overflow: hidden; /* Ensures image corners respect border-radius */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for image */
+}
+
+.slide-image {
+    max-width: 100%;
+    height: auto;
+    display: block; /* Remove extra space below image */
+}
+
+/* Adjust chat message spacing when slide is present */
+.chat-message.has-slide {
+    margin-top: 15px; /* More space between messages when a slide is present */
+}

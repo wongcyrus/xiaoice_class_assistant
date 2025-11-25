@@ -137,11 +137,17 @@ def config(request):
             logger.info("Generated %d/%d messages successfully", len(message_results), len(languages))
             
             # Step 2: Generate MP3s in parallel for all successful messages
+            language_specific_slide_links = request_json.get("language_specific_slide_links", {})
+
             if not bucket_name:
                 logger.warning("SPEECH_FILE_BUCKET not configured - skipping all audio generation")
                 # Add text-only data to broadcast
                 for lang, data in message_results.items():
-                    broadcast_payload["languages"][lang] = {"text": data["text"]}
+                    lang_specific_slide_link = language_specific_slide_links.get(lang)
+                    if lang_specific_slide_link:
+                        broadcast_payload["languages"][lang] = {"text": data["text"], "slide_link": lang_specific_slide_link}
+                    else:
+                        broadcast_payload["languages"][lang] = {"text": data["text"]}
             else:
                 logger.info("Generating MP3s for %d languages in parallel", len(message_results))
                 
@@ -241,6 +247,9 @@ def config(request):
                     }
                     for future in as_completed(future_to_lang):
                         lang, lang_data, error = future.result()
+                        lang_specific_slide_link = language_specific_slide_links.get(lang)
+                        if lang_specific_slide_link:
+                            lang_data["slide_link"] = lang_specific_slide_link
                         broadcast_payload["languages"][lang] = lang_data
                         if error:
                             logger.warning("MP3 generation had error for %s: %s", lang, error)

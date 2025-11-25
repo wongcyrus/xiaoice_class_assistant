@@ -262,12 +262,18 @@ function App() {
         {displayMessages.map((msg) => {
           const langData = getLangData(msg, currentLang);
           const hasAudio = langData && langData.audio_url;
+          const hasSlideLink = langData && langData.slide_link;
           const isCurrentPlaying = playingMsgId === msg.id;
 
           return (
             <div key={msg.id} className="chat-message">
+              {hasSlideLink && (
+                <div className="slide-image-wrapper">
+                  <img src={langData.slide_link} alt={`Slide ${msg.page_number}`} className="slide-image" />
+                </div>
+              )}
               <div 
-                className={`message-bubble ${isCurrentPlaying ? 'playing' : ''} ${hasAudio ? 'has-audio' : ''}`}
+                className={`message-bubble ${isCurrentPlaying ? 'playing' : ''} ${hasAudio ? 'has-audio' : ''} ${hasSlideLink ? 'has-slide' : ''}`}
                 style={{ fontSize: `${fontSize}rem` }}
                 onClick={() => {
                     if (!hasAudio) return; // Do nothing if no audio

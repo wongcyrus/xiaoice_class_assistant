@@ -33,7 +33,7 @@ def get_default_config():
                 "What can you help me with?",
                 "How does this work?",
                 "Can you explain more about this topic?"
-            ],backend/functions/welcome/firestore_utils.py
+            ],
             "zh": [
                 "你能帮我做什么？",
                 "这是如何工作的？",

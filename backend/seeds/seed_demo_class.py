@@ -6,6 +6,7 @@ import sys
 import time
 import requests
 from pptx import Presentation
+from google.cloud import storage
 
 # Add backend root to sys.path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -64,11 +65,44 @@ def load_credentials():
         logger.warning(f"Failed to read api_key.json: {e}")
         return None
 
+def upload_to_bucket(bucket_name, source_file_path, destination_blob_name):
+    """
+    Uploads a file to the bucket and returns the public URL.
+    """
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
+
+        blob.upload_from_filename(source_file_path)
+        
+        # Construct public URL (assuming the bucket allows public access or we use the media link)
+        # For private buckets, we might need a signed URL, but here we'll try the public media link style
+        # or the storage.googleapis.com style if the object is public.
+        # Given the requirement "send the slide url", and this is likely for a demo/dev environment:
+        
+        # Attempt to make it public (optional, depending on bucket settings)
+        # blob.make_public() 
+        
+        url = blob.public_url
+        logger.info(f"✅ Uploaded {source_file_path} to {destination_blob_name}. URL: {url}")
+        return url
+    except Exception as e:
+        logger.error(f"❌ Failed to upload {source_file_path} to bucket: {e}")
+        return None
+
 # --- DEMO DATA ---
 
 DEMO_COURSE_ID = "physics-101-demo"
 DEMO_COURSE_TITLE = "Introduction to Physics: Motion and Forces"
 DEMO_LANGUAGES = ["en-US", "zh-CN", "yue-HK"]
+
+# Mapping for visual folder suffixes
+LANG_VISUAL_SUFFIX_MAP = {
+    "en-US": "en",
+    "zh-CN": "zh-CN",
+    "yue-HK": "yue-HK"
+}
 
 LECTURE_1_PPT_FILENAME = "Physics_101_Lecture_1.pptx"
 LECTURE_1_SLIDES = [
@@ -177,7 +211,7 @@ def create_demo_course():
         logger.error(f"❌ Failed to create course: {e}")
         sys.exit(1)
 
-def simulate_presentation(api_url, api_key, slides_data, ppt_filename):
+def simulate_presentation(api_url, api_key, slides_data, ppt_filename, bucket_name=None):
     """Simulates a live presentation by sending requests to the API."""
     logger.info(f"Starting simulation for {len(slides_data)} slides from {ppt_filename}...")
     logger.info(f"Target API: {api_url}")
@@ -189,6 +223,12 @@ def simulate_presentation(api_url, api_key, slides_data, ppt_filename):
             url += f"&key={api_key}"
         else:
             url += f"?key={api_key}"
+
+    # Determine visuals directory
+    seeds_dir = os.path.dirname(os.path.abspath(__file__))
+    ppt_basename = os.path.splitext(ppt_filename)[0]
+    # Assuming 'en' visuals for the simulation
+    visuals_dir = os.path.join(seeds_dir, "generate", f"{ppt_basename}_en_visuals")
 
     for slide in slides_data:
         slide_num = slide["slide_number"]
@@ -204,7 +244,28 @@ def simulate_presentation(api_url, api_key, slides_data, ppt_filename):
             "ppt_filename": ppt_filename,
             "page_number": slide_num
         }
+
+        language_specific_slide_links = {}
+        if bucket_name:
+            for lang_code, suffix in LANG_VISUAL_SUFFIX_MAP.items():
+                visuals_dir = os.path.join(seeds_dir, "generate", f"{ppt_basename}_{suffix}_visuals")
+                image_filename = f"slide_{slide_num}_reimagined.png"
+                image_path = os.path.join(visuals_dir, image_filename)
+                
+                if os.path.exists(image_path):
+                    logger.info(f"Found visual for {lang_code}: {image_filename}. Uploading to bucket...")
+                    blob_name = f"generated_visuals/{ppt_basename}/{lang_code}/{image_filename}" # Include lang_code in blob path
+                    
+                    image_url = upload_to_bucket(bucket_name, image_path, blob_name)
+                    if image_url:
+                        language_specific_slide_links[lang_code] = image_url
+                        logger.info(f"Added slide_link for {lang_code}: {image_url}")
+                else:
+                    logger.warning(f"Visual image not found for {lang_code} at {image_path}")
         
+        if language_specific_slide_links:
+            payload["language_specific_slide_links"] = language_specific_slide_links
+
         try:
             start_time = time.time()
             response = requests.post(url, json=payload)
@@ -236,19 +297,16 @@ def main():
     final_api_key = args.api_key or file_api_key
     
     final_api_url = args.api_url
+    bucket_name = None
+    
+    # Try to load from cdktf_outputs.json
+    outputs = load_cdktf_outputs()
+    
+    # Check if outputs are nested under "cdktf" or similar
+    cdktf_outputs = outputs.get("cdktf", outputs)
     
     if not final_api_url:
-        # Try to load from cdktf_outputs.json
-        outputs = load_cdktf_outputs()
-        
-        # Check if outputs are nested under "cdktf" or similar
-        if "api-url" not in outputs:
-            for val in outputs.values():
-                if isinstance(val, dict) and "api-url" in val:
-                    outputs = val
-                    break
-        
-        base_url = outputs.get("api-url")
+        base_url = cdktf_outputs.get("api-url")
         if base_url:
             # Remove trailing slash
             if base_url.endswith("/"):
@@ -257,6 +315,12 @@ def main():
             # Construct full config endpoint
             final_api_url = f"https://{base_url}/api/config"
     
+    bucket_name = cdktf_outputs.get("speech-file-bucket")
+    if bucket_name:
+        logger.info(f"Found speech bucket: {bucket_name}")
+    else:
+        logger.warning("⚠️ Speech bucket not found in cdktf_outputs.json")
+
     if not final_api_url:
         logger.error("❌ API URL is required. Provide --api-url or ensure backend/cdktf_outputs.json exists and has 'api-url'.")
         sys.exit(1)
@@ -273,10 +337,10 @@ def main():
     generate_pptx(LECTURE_1_PPT_FILENAME, LECTURE_1_SLIDES)
     generate_pptx(LECTURE_2_PPT_FILENAME, LECTURE_2_SLIDES)
         
-    simulate_presentation(final_api_url, final_api_key, LECTURE_1_SLIDES, LECTURE_1_PPT_FILENAME)
+    simulate_presentation(final_api_url, final_api_key, LECTURE_1_SLIDES, LECTURE_1_PPT_FILENAME, bucket_name)
     logger.info("\n--- Starting Second Lecture ---")
     time.sleep(5) # Pause between lectures
-    simulate_presentation(final_api_url, final_api_key, LECTURE_2_SLIDES, LECTURE_2_PPT_FILENAME)
+    simulate_presentation(final_api_url, final_api_key, LECTURE_2_SLIDES, LECTURE_2_PPT_FILENAME, bucket_name)
 
 if __name__ == "__main__":
     main()
