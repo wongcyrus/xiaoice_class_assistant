@@ -1,0 +1,47 @@
+{
+  "slides": {
+    "slide_1_efe79ede": {
+      "slide_index": 1,
+      "existing_notes_hash": "efe79ede",
+      "original_notes": "Good morning class! In our previous lecture, we covered Newton's Laws of Motion. Today, we will expand on these concepts by introducing work, energy, and power. These concepts are crucial for understanding how forces affect objects over distances and time.",
+      "note": "Good morning class! In our previous lecture, we covered Newton's Laws of Motion. Today, we will expand on these concepts by introducing work, energy, and power. These concepts are crucial for understanding how forces affect objects over distances and time.",
+      "status": "success"
+    },
+    "slide_2_2745cebf": {
+      "slide_index": 2,
+      "existing_notes_hash": "2745cebf",
+      "original_notes": "Work, in physics, is defined as a force causing displacement. A force does work on an object if it causes a displacement of the object. The amount of work done is calculated as Force times Distance, specifically the component of force in the direction of displacement.",
+      "note": "Work, in physics, is defined as a force causing displacement. A force does work on an object if it causes a displacement of the object. The amount of work done is calculated as Force times Distance, specifically the component of force in the direction of displacement.",
+      "status": "success"
+    },
+    "slide_3_4950cff0": {
+      "slide_index": 3,
+      "existing_notes_hash": "4950cff0",
+      "original_notes": "Energy is the capacity to do work. There are various forms of energy, such as kinetic energy (energy of motion) and potential energy (stored energy). The Law of Conservation of Energy states that energy cannot be created or destroyed, only transformed from one form to another.",
+      "note": "Energy is the capacity to do work. There are various forms of energy, such as kinetic energy (energy of motion) and potential energy (stored energy). The Law of Conservation of Energy states that energy cannot be created or destroyed, only transformed from one form to another.",
+      "status": "success"
+    },
+    "slide_4_1ec7b28d": {
+      "slide_index": 4,
+      "existing_notes_hash": "1ec7b28d",
+      "original_notes": "Kinetic energy is the energy an object possesses due to its motion. It is directly proportional to the mass of the object and the square of its velocity. So, a faster or heavier object has more kinetic energy.",
+      "note": "Kinetic energy is the energy an object possesses due to its motion. It is directly proportional to the mass of the object and the square of its velocity. So, a faster or heavier object has more kinetic energy.",
+      "status": "success"
+    },
+    "slide_5_7a83fbba": {
+      "slide_index": 5,
+      "existing_notes_hash": "7a83fbba",
+      "original_notes": "Potential energy is stored energy. Gravitational potential energy depends on an object's mass, height, and the acceleration due to gravity. Elastic potential energy is stored in stretched or compressed elastic materials.",
+      "note": "Potential energy is stored energy. Gravitational potential energy depends on an object's mass, height, and the acceleration due to gravity. Elastic potential energy is stored in stretched or compressed elastic materials.",
+      "status": "success"
+    },
+    "slide_6_0046372a": {
+      "slide_index": 6,
+      "existing_notes_hash": "0046372a",
+      "original_notes": "Finally, power is the rate at which work is done or energy is transferred. It tells us how quickly work is performed. Power is calculated as Work divided by Time, or Force times Velocity. This concludes our lecture on work, energy, and power. Please prepare for a short quiz next session.",
+      "note": "Finally, power is the rate at which work is done or energy is transferred. It tells us how quickly work is performed. Power is calculated as Work divided by Time, or Force times Velocity. This concludes our lecture on work, energy, and power. Please prepare for a short quiz next session.",
+      "status": "success"
+    }
+  },
+  "global_context": "Based on the images provided, here is the Global Context guide. Please note that the current slides appear to be placeholders containing only slide numbers, so the analysis reflects this structural state.\n\n**1. The Narrative Arc**\nThe presentation follows a linear, sequential structure consisting of 6 distinct steps. Currently, the deck acts as a skeleton or template, progressing chronologically from \"Slide 1\" to \"Slide 6\" without specific content, arguments, or data points to define a story flow.\n\n**2. Key Themes & Vocabulary**\n*   **Sequential Organization:** The only visible elements are numerical indicators.\n*   **Placeholder Structure:** The consistent formatting suggests a blank canvas ready for content insertion.\n\n**3. Speaker Persona**\n*   **Neutral / Administrative:** Due to the lack of specific text or imagery, the tone is currently undefined and functional. Once content is added, this persona should be updated to reflect the specific subject matter.\n\n**4. Total Slide Count**\n6 Slides"
+}
