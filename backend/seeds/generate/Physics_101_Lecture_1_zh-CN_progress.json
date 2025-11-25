@@ -4,44 +4,44 @@
       "slide_index": 1,
       "existing_notes_hash": "020e2f22",
       "original_notes": "Welcome everyone to Physics 101. Today we are going to talk about the fundamental laws of motion. Specifically, we will look at Newton's Three Laws of Motion and how they govern the world around us.",
-      "note": "欢迎大家来到物理学101课程。今天我们将讨论运动的基本定律。具体来说，我们将探讨牛顿三大运动定律，以及它们如何支配着我们周围的世界。",
+      "note": "欢迎大家来到物理学101。今天我们将讨论运动的基本定律。具体来说，我们将探讨牛顿三大运动定律以及它们如何支配我们周围的世界。",
       "status": "success"
     },
     "slide_2_05877396": {
       "slide_index": 2,
       "existing_notes_hash": "05877396",
       "original_notes": "First, let's define 'Force'. A force is simply a push or a pull upon an object resulting from the object's interaction with another object. Whenever there is an interaction between two objects, there is a force upon each of the objects.",
-      "note": "首先，我们来定义“力”。力是指物体与另一物体相互作用时，对物体产生的推或拉。每当两个物体之间发生相互作用时，每个物体都会受到一个力。",
+      "note": "首先，我们来定义“力”。力简单来说就是物体与另一个物体相互作用时，对物体产生的推或拉。每当两个物体之间发生相互作用时，每个物体都会受到力的作用。",
       "status": "success"
     },
     "slide_3_715c948d": {
       "slide_index": 3,
       "existing_notes_hash": "715c948d",
       "original_notes": "Newton's First Law, also known as the Law of Inertia, states that an object at rest stays at rest and an object in motion stays in motion with the same speed and in the same direction unless acted upon by an unbalanced force.",
-      "note": "牛顿第一定律，也称为惯性定律，指出静止的物体将保持静止，运动的物体将以相同的速度和方向保持运动，除非受到不平衡力的作用。",
+      "note": "牛顿第一定律，也称为惯性定律，指出静止的物体会保持静止，运动的物体会以相同的速度和方向保持运动，除非受到不平衡力的作用。",
       "status": "success"
     },
     "slide_4_5204f3f3": {
       "slide_index": 4,
       "existing_notes_hash": "5204f3f3",
       "original_notes": "Newton's Second Law provides the calculation for force. It states that Force equals mass times acceleration. F equals m a. This means that the heavier an object is, the more force is needed to move it.",
-      "note": "牛顿第二定律提供了力的计算方法。它指出力等于质量乘以加速度，即 F 等于 m 乘以 a。这意味着物体越重，移动它所需的力就越大。",
+      "note": "牛顿第二定律提供了力的计算方法。它指出力等于质量乘以加速度。F = ma。这意味着物体越重，移动它所需的力就越大。",
       "status": "success"
     },
     "slide_5_80fafb79": {
       "slide_index": 5,
       "existing_notes_hash": "80fafb79",
       "original_notes": "Finally, Newton's Third Law: For every action, there is an equal and opposite reaction. This means that in every interaction, there is a pair of forces acting on the two interacting objects.",
-      "note": "最后，牛顿第三定律：每一个作用力，都存在一个大小相等、方向相反的反作用力。这意味着在每一次相互作用中，都有一对力作用于这两个相互作用的物体上。",
+      "note": "最后，牛顿第三定律是：每一个作用力都有一个大小相等、方向相反的反作用力。这意味着在每一次相互作用中，都有一对力作用在两个相互作用的物体上。",
       "status": "success"
     },
     "slide_6_7f5cfab3": {
       "slide_index": 6,
       "existing_notes_hash": "7f5cfab3",
       "original_notes": "That concludes our brief introduction. Please review Chapter 1 in your textbooks for next week's lab session. Thank you for listening!",
-      "note": "我们简要的介绍到此结束。请大家复习课本第一章，为下周的实验课做准备。感谢大家的聆听！",
+      "note": "我们的简短介绍到此结束。请大家预习课本的第一章，为下周的实验课做准备。感谢大家的聆听！",
       "status": "success"
     }
   },
-  "global_context": "Based on the provided slides, here is the Global Context guide. Note that the current deck consists of placeholder slides.\n\n**Global Context**\n\n1.  **The Narrative Arc:** The presentation follows a linear, chronological structure, progressing sequentially from Slide 1 to Slide 6. As the slides currently contain only placeholder titles without specific content, text, or visuals, the specific storyline (Problem/Solution/Outcome) is undefined.\n2.  **Key Themes & Vocabulary:**\n    *   **Enumeration:** The primary repeating element is the sequential numbering (1, 2, 3, etc.).\n    *   **Structure:** The visual theme is a \"Blank Canvas\" or \"Template\" style.\n3.  **Speaker Persona:** **\"The Neutral Facilitator.\"** Since the content is not yet populated, the tone is generic, structural, and devoid of emotion or specific rhetoric.\n4.  **Total Slide Count:** 6 slides."
+  "global_context": "基于所提供的图片，以下是本演示文稿的全局背景指南。\n\n**全局背景指南**\n\n1.  **叙事弧线：**\n    *   本演示文稿目前仅包含**占位内容**。没有叙事流程、故事或论点。每张幻灯片仅在白色背景上标有其序列号（“幻灯片 1”到“幻灯片 6”）。\n    *   *给作者的备注：* 在没有额外输入或上下文的情况下，叙事是不存在的。生成的任何演讲者备注都将完全是凭空想象的，或基于此处不可见的外部指令。\n\n2.  **关键主题和词汇：**\n    *   **主题：** 占位符结构，顺序排列。\n    *   **词汇：** “幻灯片”、“[数字]”（1-6）。\n\n3.  **演讲者人设：**\n    *   **未定义 / 中性：** 由于完全缺乏文本、数据或视觉内容，无法推断出特定的语气或人设。当前的语气纯粹是功能性和结构性的。\n\n4.  **幻灯片总数：**\n    *   6 张幻灯片。"
 }
