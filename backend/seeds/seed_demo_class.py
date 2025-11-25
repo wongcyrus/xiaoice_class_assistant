@@ -334,8 +334,8 @@ def main():
         logger.info("Skipping course creation as requested.")
         
     # Generate PPTX files
-    generate_pptx(LECTURE_1_PPT_FILENAME, LECTURE_1_SLIDES)
-    generate_pptx(LECTURE_2_PPT_FILENAME, LECTURE_2_SLIDES)
+    # generate_pptx(LECTURE_1_PPT_FILENAME, LECTURE_1_SLIDES)
+    # generate_pptx(LECTURE_2_PPT_FILENAME, LECTURE_2_SLIDES)
         
     simulate_presentation(final_api_url, final_api_key, LECTURE_1_SLIDES, LECTURE_1_PPT_FILENAME, bucket_name)
     logger.info("\n--- Starting Second Lecture ---")
