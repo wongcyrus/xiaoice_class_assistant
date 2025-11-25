@@ -5,17 +5,82 @@ import { db } from "./firebase";
 
 // Icons
 const PlayIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 3l14 9-14 9V3z" />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 5v14l11-7z" />
     </svg>
 );
 
 const PauseIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <rect x="6" y="4" width="4" height="16" rx="1" />
-        <rect x="14" y="4" width="4" height="16" rx="1" />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
     </svg>
 );
+
+const CloseIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+    </svg>
+);
+
+const ShowSubtitleIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 13c-3.13 0-6-2.03-7.8-5.5 1.8-3.47 4.67-5.5 7.8-5.5s6 2.03 7.8 5.5c-1.8 3.47-4.67 5.5-7.8 5.5zm0-8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+    </svg>
+);
+
+const HideSubtitleIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7L8.03 8.03C9.07 7.37 10.4 7 12 7zm0 10c-3.13 0-6-2.03-7.8-5.5 1.8-3.47 4.67-5.5 7.8-5.5.75 0 1.47.16 2.15.45l-1.63-1.63c-.5-.13-1.04-.22-1.52-.22-2.21 0-4 1.79-4 4s1.79 4 4 4c.48 0 .97-.09 1.4-.23l1.83 1.83c-.71.3-1.46.52-2.23.52zm4.3-5.74l3.15 3.15.01-.01L23.64 19l-1.41 1.41-3.28-3.28c-.89.23-1.8.36-2.75.36-3.13 0-6-2.03-7.8-5.5 1.15-1.92 2.76-3.37 4.67-4.38l1.79 1.79c-.07.03-.15.06-.22.09l-4.5-4.5L2.36 4.36 1 5.77l3.95 3.95c-1.45 1.62-2.58 3.49-3.43 5.55L1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.31 4.3-1.04zM12 11.5c.29 0 .56.03.82.09l-1.09-1.09c-.19.46-.3.97-.3 1.41 0 1.1.9 2 2 2 .44 0 .9-.1 1.3-.27l1.71 1.71c-.74.33-1.55.56-2.45.56-2.21 0-4-1.79-4-4 0-.91.3-1.75.79-2.44z"/>
+    </svg>
+);
+
+const FullScreenSlide = ({ msg, langData, onClose, onTogglePlay, isPlaying, isCurrentPlaying }) => {
+    const [isSubtitleHidden, setIsSubtitleHidden] = useState(false);
+
+    if (!msg || !langData) return null;
+
+    const toggleSubtitle = (e) => {
+        e.stopPropagation(); // Prevent toggling play/pause when clicking the subtitle button
+        setIsSubtitleHidden(prev => !prev);
+    };
+
+    return (
+        <div className="fullscreen-overlay" onClick={onTogglePlay}>
+            <button className="fullscreen-close-btn" onClick={(e) => { e.stopPropagation(); onClose(); }}>
+                <CloseIcon />
+            </button>
+            
+            <div className="fullscreen-content">
+                {langData.slide_link ? (
+                    <img 
+                        src={langData.slide_link} 
+                        alt={`Slide ${msg.page_number}`} 
+                        className="fullscreen-image" 
+                    />
+                ) : (
+                    <div className="fullscreen-placeholder">
+                        <span>No Slide Image</span>
+                    </div>
+                )}
+                
+                <div className="fullscreen-controls">
+                    {isCurrentPlaying && isPlaying ? (
+                        <div className="play-indicator"><PauseIcon /></div>
+                    ) : (
+                        <div className="play-indicator"><PlayIcon /></div>
+                    )}
+                </div>
+
+                <div className={`fullscreen-subtitle ${isSubtitleHidden ? 'hidden' : ''}`}>
+                    <p>{langData.text}</p>
+                    <button className="toggle-subtitle-btn" onClick={toggleSubtitle}>
+                        {isSubtitleHidden ? <ShowSubtitleIcon /> : <HideSubtitleIcon />}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 function App() {
   const [searchParams] = useSearchParams();
@@ -38,6 +103,9 @@ function App() {
   const [playlist, setPlaylist] = useState([]); // Array of msg objects to play
   const [autoplay, setAutoplay] = useState(true);
   const [isReady, setIsReady] = useState(false); // User has clicked "Join"
+  
+  // Full Screen State
+  const [fullScreenMsg, setFullScreenMsg] = useState(null);
 
   // Refs
   const audioRef = useRef(new Audio());
@@ -91,6 +159,15 @@ function App() {
                 setPlayingMsgId(null);
             });
     }
+  };
+
+  const togglePlay = (msg) => {
+      const isCurrent = playingMsgId === msg.id;
+      if (isCurrent && isPlaying) {
+          audioRef.current.pause();
+      } else {
+          playMessage(msg);
+      }
   };
 
  
@@ -157,36 +234,58 @@ function App() {
     const q = query(messagesRef, orderBy("updated_at", "asc"), limitToLast(100));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // Sort manually to be safe (though query should handle it)
       const msgs = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .sort((a, b) => (a.updated_at?.seconds || 0) - (b.updated_at?.seconds || 0));
 
       setMessages(msgs);
+    });
 
-      // Autoplay New Messages and update current presentation info
-      if (msgs.length > 0) {
-          const lastMsg = msgs[msgs.length - 1];
+    return () => unsubscribe();
+  }, [courseId, isReady]);
+
+  // 3. React to New Messages (Autoplay & Follow Presenter)
+  useEffect(() => {
+      if (messages.length > 0) {
+          const lastMsg = messages[messages.length - 1];
           
+          // Always update current tracking info
           setCurrentPptFile(lastMsg.ppt_filename || '');
           setCurrentSlideNumber(lastMsg.page_number || '');
 
-          // If no filter is currently applied, automatically select the current presentation
-          if (!pptFilter) {
-              setPptFilter(lastMsg.ppt_filename || '');
+          // Auto-follow presenter: Update filter if it differs
+          if (lastMsg.ppt_filename && pptFilter !== lastMsg.ppt_filename) {
+              setPptFilter(lastMsg.ppt_filename);
+          } else if (!pptFilter && lastMsg.ppt_filename) {
+              setPptFilter(lastMsg.ppt_filename);
           }
           
+          // Handle New Message Arrival
           if (latestMsgIdRef.current !== lastMsg.id) {
               latestMsgIdRef.current = lastMsg.id;
               if (autoplay) {
                   playMessage(lastMsg, true);
+                  
+                  // If user is in fullscreen, we want to ensure the view updates 
+                  // (Handled by the sync effect below, but explicitly setting here reduces latency)
+                  if (fullScreenMsg) {
+                      setFullScreenMsg(lastMsg);
+                  }
               }
           }
       }
-    });
+  }, [messages, autoplay, pptFilter, fullScreenMsg]); // Dependencies allow access to fresh state
 
-    return () => unsubscribe();
-  }, [courseId, currentLang, autoplay, isReady]); // Re-bind if params change
+  // 4. Sync FullScreen view with Audio Player
+  useEffect(() => {
+    if (fullScreenMsg && playingMsgId) {
+        const msgPlaying = messages.find(m => m.id === playingMsgId);
+        // If the audio playing is different from what we show, update the show
+        if (msgPlaying && msgPlaying.id !== fullScreenMsg.id) {
+            setFullScreenMsg(msgPlaying);
+        }
+    }
+  }, [playingMsgId, messages, fullScreenMsg]);
 
   // Display Order: Newest First
   const displayMessages = [...messages].reverse().filter(msg => {
@@ -209,6 +308,17 @@ function App() {
 
   return (
     <div className="container">
+      {fullScreenMsg && (
+          <FullScreenSlide 
+              msg={fullScreenMsg} 
+              langData={getLangData(fullScreenMsg, currentLang)}
+              onClose={() => setFullScreenMsg(null)}
+              onTogglePlay={() => togglePlay(fullScreenMsg)}
+              isPlaying={isPlaying}
+              isCurrentPlaying={playingMsgId === fullScreenMsg.id}
+          />
+      )}
+
       <header>
         <h1>🎓 LangBridge</h1>
         <div className="controls">
@@ -268,7 +378,10 @@ function App() {
           return (
             <div key={msg.id} className="chat-message">
               {hasSlideLink && (
-                <div className="slide-image-wrapper">
+                <div className="slide-image-wrapper" onClick={() => {
+                    setFullScreenMsg(msg);
+                    playMessage(msg);
+                }}>
                   <img src={langData.slide_link} alt={`Slide ${msg.page_number}`} className="slide-image" />
                 </div>
               )}
@@ -276,12 +389,8 @@ function App() {
                 className={`message-bubble ${isCurrentPlaying ? 'playing' : ''} ${hasAudio ? 'has-audio' : ''} ${hasSlideLink ? 'has-slide' : ''}`}
                 style={{ fontSize: `${fontSize}rem` }}
                 onClick={() => {
-                    if (!hasAudio) return; // Do nothing if no audio
-                    if (isCurrentPlaying && isPlaying) {
-                        audioRef.current.pause();
-                    } else {
-                        playMessage(msg);
-                    }
+                    setFullScreenMsg(msg);
+                    playMessage(msg);
                 }}
               >
                 <div className="message-content-wrapper">
@@ -295,10 +404,10 @@ function App() {
                     )}
                 </div>
                 {hasAudio && isCurrentPlaying && isPlaying && (
-                    <PauseIcon />
+                    <div className="msg-status-icon"><PauseIcon /></div>
                 )}
                 {hasAudio && (!isCurrentPlaying || !isPlaying) && (
-                    <PlayIcon />
+                    <div className="msg-status-icon"><PlayIcon /></div>
                 )}
               </div>
 

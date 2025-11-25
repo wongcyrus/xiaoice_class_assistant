@@ -22,6 +22,7 @@ body {
     height: 100%;
     width: 100%;
     box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    position: relative;
 }
 
 header {
@@ -233,6 +234,12 @@ select {
     justify-content: space-between;
     align-items: flex-start; /* Changed from center to align top */
     gap: 15px;
+    cursor: pointer; /* Indicate clickability */
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.message-bubble:active {
+    transform: scale(0.98);
 }
 
 .message-content-wrapper {
@@ -258,24 +265,12 @@ select {
     font-size: 0.9rem;
 }
 
-.msg-play-btn {
-    background: #e8f0fe;
+.msg-status-icon {
     color: #1a73e8;
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     flex-shrink: 0;
-    transition: all 0.2s;
-}
-
-.msg-play-btn:hover {
-    background: #d2e3fc;
-    transform: scale(1.05);
 }
 
 .message-bubble.playing {
@@ -361,7 +356,7 @@ select {
     }
 }
 
-/* New styles for slide images */
+/* Slide Images in Feed */
 .slide-image-wrapper {
     margin-bottom: 10px; /* Space between image and text bubble */
     width: 100%;
@@ -371,6 +366,7 @@ select {
     border-radius: 8px; /* Optional: subtle rounded corners */
     overflow: hidden; /* Ensures image corners respect border-radius */
     box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for image */
+    cursor: pointer;
 }
 
 .slide-image {
@@ -382,4 +378,120 @@ select {
 /* Adjust chat message spacing when slide is present */
 .chat-message.has-slide {
     margin-top: 15px; /* More space between messages when a slide is present */
+}
+
+/* --- Full Screen Overlay Styles --- */
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    z-index: 2000; /* Above everything */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center vertical */
+    align-items: center; /* Center horizontal */
+    animation: fadeIn 0.2s ease-out;
+}
+
+.fullscreen-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2010;
+}
+
+.fullscreen-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.fullscreen-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Ensure entire slide is visible */
+}
+
+.fullscreen-placeholder {
+    color: #888;
+    font-size: 1.2rem;
+}
+
+.fullscreen-subtitle {
+    position: absolute;
+    bottom: 40px; /* Space from bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 800px;
+    background-color: rgba(0, 0, 0, 0.75); /* Semi-transparent black */
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    backdrop-filter: blur(4px);
+    display: flex; /* Allow button next to text */
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding-right: 50px; /* Make space for the button */
+    transition: all 0.3s ease-in-out;
+}
+
+.fullscreen-subtitle.hidden {
+    height: 40px; /* Small icon height */
+    width: 40px;
+    padding: 0;
+    border-radius: 50%; /* Make it a circle */
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Hide text */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.fullscreen-subtitle.hidden p {
+    display: none; /* Hide the text content */
+}
+
+.toggle-subtitle-btn {
+    position: absolute; /* Position relative to .fullscreen-subtitle */
+    right: 10px; /* Space from right edge of subtitle area */
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    z-index: 1; /* Above text if needed */
+}
+
+.fullscreen-subtitle.hidden .toggle-subtitle-btn {
+    right: 0; /* Center icon when subtitle is hidden */
+    transform: translate(0, -50%); /* Adjust to center */
+}
+
+.toggle-subtitle-btn svg {
+    width: 24px;
+    height: 24px;
 }
