@@ -1,0 +1,47 @@
+{
+  "slides": {
+    "slide_1_020e2f22": {
+      "slide_index": 1,
+      "existing_notes_hash": "020e2f22",
+      "original_notes": "Welcome everyone to Physics 101. Today we are going to talk about the fundamental laws of motion. Specifically, we will look at Newton's Three Laws of Motion and how they govern the world around us.",
+      "note": "Welcome everyone to Physics 101. Today we are going to talk about the fundamental laws of motion. Specifically, we will look at Newton's Three Laws of Motion and how they govern the world around us.",
+      "status": "success"
+    },
+    "slide_2_05877396": {
+      "slide_index": 2,
+      "existing_notes_hash": "05877396",
+      "original_notes": "First, let's define 'Force'. A force is simply a push or a pull upon an object resulting from the object's interaction with another object. Whenever there is an interaction between two objects, there is a force upon each of the objects.",
+      "note": "First, let's define 'Force'. A force is simply a push or a pull upon an object resulting from the object's interaction with another object. Whenever there is an interaction between two objects, there is a force upon each of the objects.",
+      "status": "success"
+    },
+    "slide_3_715c948d": {
+      "slide_index": 3,
+      "existing_notes_hash": "715c948d",
+      "original_notes": "Newton's First Law, also known as the Law of Inertia, states that an object at rest stays at rest and an object in motion stays in motion with the same speed and in the same direction unless acted upon by an unbalanced force.",
+      "note": "Newton's First Law, also known as the Law of Inertia, states that an object at rest stays at rest and an object in motion stays in motion with the same speed and in the same direction unless acted upon by an unbalanced force.",
+      "status": "success"
+    },
+    "slide_4_5204f3f3": {
+      "slide_index": 4,
+      "existing_notes_hash": "5204f3f3",
+      "original_notes": "Newton's Second Law provides the calculation for force. It states that Force equals mass times acceleration. F equals m a. This means that the heavier an object is, the more force is needed to move it.",
+      "note": "Newton's Second Law provides the calculation for force. It states that Force equals mass times acceleration. F equals m a. This means that the heavier an object is, the more force is needed to move it.",
+      "status": "success"
+    },
+    "slide_5_80fafb79": {
+      "slide_index": 5,
+      "existing_notes_hash": "80fafb79",
+      "original_notes": "Finally, Newton's Third Law: For every action, there is an equal and opposite reaction. This means that in every interaction, there is a pair of forces acting on the two interacting objects.",
+      "note": "Finally, Newton's Third Law: For every action, there is an equal and opposite reaction. This means that in every interaction, there is a pair of forces acting on the two interacting objects.",
+      "status": "success"
+    },
+    "slide_6_7f5cfab3": {
+      "slide_index": 6,
+      "existing_notes_hash": "7f5cfab3",
+      "original_notes": "That concludes our brief introduction. Please review Chapter 1 in your textbooks for next week's lab session. Thank you for listening!",
+      "note": "That concludes our brief introduction. Please review Chapter 1 in your textbooks for next week's lab session. Thank you for listening!",
+      "status": "success"
+    }
+  },
+  "global_context": "Based on the images provided, here is the Global Context guide. Note that because the slides contain only placeholder text (\"Slide 1\", \"Slide 2\", etc.) without specific content, the analysis focuses on the structural framework.\n\n**Global Context Guide**\n\n1.  **The Narrative Arc:**\n    The presentation follows a standard linear skeleton of 6 distinct steps. While the specific story is not yet populated, a 6-slide arc typically implies a tight, high-level overview structure:\n    *   **Slide 1:** Title/Hook\n    *   **Slides 2-5:** Core Argument or Data\n    *   **Slide 6:** Conclusion/Next Steps\n    *   *Current Status:* Sequential numeric flow only.\n\n2.  **Key Themes & Vocabulary:**\n    *   **Structure/Sequence:** The only distinct terms currently are the slide enumerations.\n    *   **Placeholder:** The deck is currently a \"blank canvas\" waiting for subject matter.\n\n3.  **Speaker Persona:**\n    *   **Neutral / Administrative:** As there is no voice, data, or imagery to establish emotion or authority yet, the current tone is purely functional.\n\n4.  **Total Slide Count:**\n    *   6 Slides"
+}

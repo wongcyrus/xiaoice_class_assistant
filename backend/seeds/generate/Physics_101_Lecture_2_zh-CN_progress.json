@@ -1,0 +1,47 @@
+{
+  "slides": {
+    "slide_1_efe79ede": {
+      "slide_index": 1,
+      "existing_notes_hash": "efe79ede",
+      "original_notes": "Good morning class! In our previous lecture, we covered Newton's Laws of Motion. Today, we will expand on these concepts by introducing work, energy, and power. These concepts are crucial for understanding how forces affect objects over distances and time.",
+      "note": "同学们早上好！在上一讲中，我们讨论了牛顿运动定律。今天，我们将通过介绍功、能量和功率来扩展这些概念。这些概念对于理解力如何在距离和时间上影响物体至关重要。",
+      "status": "success"
+    },
+    "slide_2_2745cebf": {
+      "slide_index": 2,
+      "existing_notes_hash": "2745cebf",
+      "original_notes": "Work, in physics, is defined as a force causing displacement. A force does work on an object if it causes a displacement of the object. The amount of work done is calculated as Force times Distance, specifically the component of force in the direction of displacement.",
+      "note": "物理学中，功被定义为力使物体发生位移的作用。如果一个力使物体发生位移，那么这个力就对物体做了功。所做功的大小计算为力乘以位移，具体而言，是力在位移方向上的分量。",
+      "status": "success"
+    },
+    "slide_3_4950cff0": {
+      "slide_index": 3,
+      "existing_notes_hash": "4950cff0",
+      "original_notes": "Energy is the capacity to do work. There are various forms of energy, such as kinetic energy (energy of motion) and potential energy (stored energy). The Law of Conservation of Energy states that energy cannot be created or destroyed, only transformed from one form to another.",
+      "note": "能量是做功的能力。能量有多种形式，例如动能（运动的能量）和势能（储存的能量）。能量守恒定律指出，能量不能被创造也不能被毁灭，只能从一种形式转化为另一种形式。",
+      "status": "success"
+    },
+    "slide_4_1ec7b28d": {
+      "slide_index": 4,
+      "existing_notes_hash": "1ec7b28d",
+      "original_notes": "Kinetic energy is the energy an object possesses due to its motion. It is directly proportional to the mass of the object and the square of its velocity. So, a faster or heavier object has more kinetic energy.",
+      "note": "动能是物体因其运动而拥有的能量。它与物体的质量及其速度的平方成正比。因此，速度更快或质量更大的物体具有更多的动能。",
+      "status": "success"
+    },
+    "slide_5_7a83fbba": {
+      "slide_index": 5,
+      "existing_notes_hash": "7a83fbba",
+      "original_notes": "Potential energy is stored energy. Gravitational potential energy depends on an object's mass, height, and the acceleration due to gravity. Elastic potential energy is stored in stretched or compressed elastic materials.",
+      "note": "势能是储存的能量。重力势能取决于物体的质量、高度以及重力加速度。弹性势能储存在被拉伸或压缩的弹性材料中。",
+      "status": "success"
+    },
+    "slide_6_0046372a": {
+      "slide_index": 6,
+      "existing_notes_hash": "0046372a",
+      "original_notes": "Finally, power is the rate at which work is done or energy is transferred. It tells us how quickly work is performed. Power is calculated as Work divided by Time, or Force times Velocity. This concludes our lecture on work, energy, and power. Please prepare for a short quiz next session.",
+      "note": "最终，功率是功完成或能量转移的速率。它告诉我们功完成的速度有多快。功率的计算方式是功除以时间，或者力乘以速度。这就结束了我们关于功、能量和功率的讲座。请为下次课的简短测验做准备。",
+      "status": "success"
+    }
+  },
+  "global_context": "根据所提供的图像，以下是全球语境指南。请注意，目前的幻灯片似乎是仅包含幻灯片编号的占位符，因此分析反映了这种结构状态。\n\n**1. 叙事弧线**\n本演示文稿遵循线性的、顺序的结构，包含6个不同的步骤。目前，此幻灯片组充当骨架或模板，按时间顺序从“幻灯片1”到“幻灯片6”推进，没有具体内容、论点或数据点来定义故事流程。\n\n**2. 关键主题与词汇**\n*   **顺序组织：** 唯一可见的元素是数字指示符。\n*   **占位符结构：** 一致的格式表明这是一个空白画布，可随时插入内容。\n\n**3. 演讲者人设**\n*   **中立/行政：** 由于缺乏具体的文本或图像，目前的语调未定义且功能性。一旦添加内容，应更新此人设以反映具体的主题。\n\n**4. 幻灯片总数**\n6张幻灯片"
+}

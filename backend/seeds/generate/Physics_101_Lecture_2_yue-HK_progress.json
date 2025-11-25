@@ -1,0 +1,47 @@
+{
+  "slides": {
+    "slide_1_efe79ede": {
+      "slide_index": 1,
+      "existing_notes_hash": "efe79ede",
+      "original_notes": "Good morning class! In our previous lecture, we covered Newton's Laws of Motion. Today, we will expand on these concepts by introducing work, energy, and power. These concepts are crucial for understanding how forces affect objects over distances and time.",
+      "note": "早晨，各位同學！喺我哋上次嘅課堂，我哋討論咗牛頓運動定律。今日，我哋會透過引入功、能量同功率嚟延伸呢啲概念。呢啲概念對於理解力點樣喺唔同距離同時間上影響物體係非常關鍵嘅。",
+      "status": "success"
+    },
+    "slide_2_2745cebf": {
+      "slide_index": 2,
+      "existing_notes_hash": "2745cebf",
+      "original_notes": "Work, in physics, is defined as a force causing displacement. A force does work on an object if it causes a displacement of the object. The amount of work done is calculated as Force times Distance, specifically the component of force in the direction of displacement.",
+      "note": "物理學上，功嘅定義係由力引起嘅位移。如果一個力令到物體產生位移，咁呢個力就對物體做咗功。所做嘅功嘅量係用「力乘以距離」嚟計算，特別係指力喺位移方向上嘅分量。",
+      "status": "success"
+    },
+    "slide_3_4950cff0": {
+      "slide_index": 3,
+      "existing_notes_hash": "4950cff0",
+      "original_notes": "Energy is the capacity to do work. There are various forms of energy, such as kinetic energy (energy of motion) and potential energy (stored energy). The Law of Conservation of Energy states that energy cannot be created or destroyed, only transformed from one form to another.",
+      "note": "能量是做功的能力。能量有好多種形式，例如動能（運動的能量）同勢能（儲存的能量）。能量守恆定律指出，能量唔可以被創造或者被毀滅，只可以由一種形式轉化做另一種形式。",
+      "status": "success"
+    },
+    "slide_4_1ec7b28d": {
+      "slide_index": 4,
+      "existing_notes_hash": "1ec7b28d",
+      "original_notes": "Kinetic energy is the energy an object possesses due to its motion. It is directly proportional to the mass of the object and the square of its velocity. So, a faster or heavier object has more kinetic energy.",
+      "note": "動能係物體因為佢嘅運動而擁有嘅能量。佢同物體嘅質量同埋佢速度嘅平方成正比。所以，一件郁得快啲或者重啲嘅物體會有更多動能。",
+      "status": "success"
+    },
+    "slide_5_7a83fbba": {
+      "slide_index": 5,
+      "existing_notes_hash": "7a83fbba",
+      "original_notes": "Potential energy is stored energy. Gravitational potential energy depends on an object's mass, height, and the acceleration due to gravity. Elastic potential energy is stored in stretched or compressed elastic materials.",
+      "note": "勢能係儲存嘅能量。重力勢能取決於物體嘅質量、高度同埋重力加速度。彈性勢能儲存喺拉伸或者壓縮嘅彈性物料入面。",
+      "status": "success"
+    },
+    "slide_6_0046372a": {
+      "slide_index": 6,
+      "existing_notes_hash": "0046372a",
+      "original_notes": "Finally, power is the rate at which work is done or energy is transferred. It tells us how quickly work is performed. Power is calculated as Work divided by Time, or Force times Velocity. This concludes our lecture on work, energy, and power. Please prepare for a short quiz next session.",
+      "note": "最後，功率就係做功嘅速率或者能量轉移嘅速率。佢話俾我哋知做功有幾快。功率嘅計算方法係功除以時間，或者力乘速度。我哋關於功、能量同功率嘅講座到此結束。請為下一節課嘅一個簡短小測做好準備。",
+      "status": "success"
+    }
+  },
+  "global_context": "根據所提供嘅圖像，以下係全球脈絡指南。請注意，目前嘅投影片似乎只係包含投影片編號嘅佔位符，因此分析將反映呢種結構狀態。\n\n**1. 敘事弧線**\n呢份演示文稿採用線性、順序嘅結構，包含 6 個獨立嘅步驟。目前，呢份簡報只係一個骨架或模板，按時間順序由「投影片 1」進展到「投影片 6」，但冇具體嘅內容、論點或者數據點去定義一個故事流程。\n\n**2. 主要主題同詞彙**\n*   **順序組織：** 唯一可見嘅元素係數字標示。\n*   **佔位符結構：** 一致嘅格式表明呢係一塊準備好插入內容嘅空白畫布。\n\n**3. 講者形象**\n*   **中性／行政管理式：** 由於缺乏具體文字或圖像，語氣目前係未定義且功能性嘅。一旦加入內容，呢個形象應該更新以反映具體嘅主題內容。\n\n**4. 總投影片數**\n6 張投影片"
+}
