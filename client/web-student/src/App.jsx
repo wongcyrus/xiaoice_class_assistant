@@ -34,7 +34,19 @@ const HideSubtitleIcon = () => (
     </svg>
 );
 
-const FullScreenSlide = ({ msg, langData, onClose, onTogglePlay, isPlaying, isCurrentPlaying }) => {
+const ChevronLeftIcon = () => (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+);
+
+const ChevronRightIcon = () => (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+);
+
+const FullScreenSlide = ({ msg, langData, onClose, onTogglePlay, isPlaying, isCurrentPlaying, onNext, onPrev, hasNext, hasPrev }) => {
     const [isSubtitleHidden, setIsSubtitleHidden] = useState(false);
 
     if (!msg || !langData) return null;
@@ -50,6 +62,17 @@ const FullScreenSlide = ({ msg, langData, onClose, onTogglePlay, isPlaying, isCu
                 <CloseIcon />
             </button>
             
+            {hasPrev && (
+                <button className="nav-btn left" onClick={(e) => { e.stopPropagation(); onPrev(); }}>
+                    <ChevronLeftIcon />
+                </button>
+            )}
+            {hasNext && (
+                <button className="nav-btn right" onClick={(e) => { e.stopPropagation(); onNext(); }}>
+                    <ChevronRightIcon />
+                </button>
+            )}
+
             <div className="fullscreen-content">
                 {langData.slide_link ? (
                     <img 
@@ -93,6 +116,7 @@ function App() {
   const [pptFilter, setPptFilter] = useState('');
   const [currentPptFile, setCurrentPptFile] = useState('');
   const [currentSlideNumber, setCurrentSlideNumber] = useState('');
+  const [isAutoFilter, setIsAutoFilter] = useState(true);
   
   // Accessibility
   const [fontSize, setFontSize] = useState(1.1); // Default rem value
@@ -253,11 +277,13 @@ function App() {
           setCurrentPptFile(lastMsg.ppt_filename || '');
           setCurrentSlideNumber(lastMsg.page_number || '');
 
-          // Auto-follow presenter: Update filter if it differs
-          if (lastMsg.ppt_filename && pptFilter !== lastMsg.ppt_filename) {
-              setPptFilter(lastMsg.ppt_filename);
-          } else if (!pptFilter && lastMsg.ppt_filename) {
-              setPptFilter(lastMsg.ppt_filename);
+          // Auto-follow presenter: Update filter if it differs AND auto-follow is enabled
+          if (isAutoFilter) {
+             if (lastMsg.ppt_filename && pptFilter !== lastMsg.ppt_filename) {
+                 setPptFilter(lastMsg.ppt_filename);
+             } else if (!pptFilter && lastMsg.ppt_filename) {
+                 setPptFilter(lastMsg.ppt_filename);
+             }
           }
           
           // Handle New Message Arrival
@@ -274,7 +300,7 @@ function App() {
               }
           }
       }
-  }, [messages, autoplay, pptFilter, fullScreenMsg]); // Dependencies allow access to fresh state
+  }, [messages, autoplay, pptFilter, fullScreenMsg, isAutoFilter]); // Dependencies allow access to fresh state
 
   // 4. Sync FullScreen view with Audio Player
   useEffect(() => {
@@ -286,6 +312,46 @@ function App() {
         }
     }
   }, [playingMsgId, messages, fullScreenMsg]);
+
+  // Filter messages for slideshow navigation (Chronological order)
+  const slideshowMessages = messages.filter(msg => {
+      if (pptFilter) {
+          const pptName = (msg.ppt_filename || "");
+          if (pptName !== pptFilter) return false;
+      }
+      const langData = getLangData(msg, currentLang);
+      return langData && langData.slide_link;
+  });
+
+  const currentIndex = fullScreenMsg ? slideshowMessages.findIndex(m => m.id === fullScreenMsg.id) : -1;
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex !== -1 && currentIndex < slideshowMessages.length - 1;
+
+  const handlePrevSlide = () => {
+      if (hasPrev) {
+          // Stop current audio and clear tracking to prevent auto-revert
+          audioRef.current.pause();
+          setIsPlaying(false);
+          setPlayingMsgId(null);
+
+          const prevMsg = slideshowMessages[currentIndex - 1];
+          setFullScreenMsg(prevMsg);
+          playMessage(prevMsg);
+      }
+  };
+
+  const handleNextSlide = () => {
+      if (hasNext) {
+          // Stop current audio and clear tracking to prevent auto-revert
+          audioRef.current.pause();
+          setIsPlaying(false);
+          setPlayingMsgId(null);
+
+          const nextMsg = slideshowMessages[currentIndex + 1];
+          setFullScreenMsg(nextMsg);
+          playMessage(nextMsg);
+      }
+  };
 
   // Display Order: Newest First
   const displayMessages = [...messages].reverse().filter(msg => {
@@ -316,6 +382,10 @@ function App() {
               onTogglePlay={() => togglePlay(fullScreenMsg)}
               isPlaying={isPlaying}
               isCurrentPlaying={playingMsgId === fullScreenMsg.id}
+              onNext={handleNextSlide}
+              onPrev={handlePrevSlide}
+              hasNext={hasNext}
+              hasPrev={hasPrev}
           />
       )}
 
@@ -338,10 +408,28 @@ function App() {
       
       <div className="sub-header">
         <div className="filter-controls">
+            <label className="auto-follow-toggle">
+                <input 
+                    type="checkbox" 
+                    checked={isAutoFilter} 
+                    onChange={(e) => {
+                        const checked = e.target.checked;
+                        setIsAutoFilter(checked);
+                        if (checked) {
+                            setPptFilter(currentPptFile);
+                        }
+                    }} 
+                />
+                <span>Auto-follow</span>
+            </label>
             <select 
                 value={pptFilter}
-                onChange={(e) => setPptFilter(e.target.value)}
+                onChange={(e) => {
+                    setPptFilter(e.target.value);
+                    setIsAutoFilter(false);
+                }}
                 className="ppt-filter-select"
+                disabled={isAutoFilter}
             >
                 {uniquePptFiles.map(file => (
                     <option key={file} value={file}>{file}</option>

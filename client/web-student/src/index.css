@@ -64,6 +64,11 @@ select {
     margin-right: 5px;
 }
 
+.filter-controls {
+    display: flex;
+    align-items: center;
+}
+
 .ppt-filter-select {
     padding: 6px 10px;
     border-radius: 20px;
@@ -164,6 +169,17 @@ select {
 }
 
 
+
+.auto-follow-toggle {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #5f6368;
+    cursor: pointer;
+    user-select: none;
+    margin-right: 15px;
+}
 
 .autoplay-toggle {
 
@@ -494,4 +510,53 @@ select {
 .toggle-subtitle-btn svg {
     width: 24px;
     height: 24px;
+}
+
+/* Navigation Buttons */
+.nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2010;
+    transition: background 0.2s;
+}
+
+.nav-btn:hover {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.nav-btn.left {
+    left: 20px;
+}
+
+.nav-btn.right {
+    right: 20px;
+}
+
+@media (max-width: 600px) {
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 0, 0, 0.5); /* More visible on mobile */
+    }
+    .nav-btn.left {
+        left: 10px;
+    }
+    .nav-btn.right {
+        right: 10px;
+    }
+    .nav-btn svg {
+        width: 24px;
+        height: 24px;
+    }
 }
