@@ -281,37 +281,59 @@ select {
     line-height: 1.5;
     text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     flex-grow: 1; /* Allow text to take space */
-    padding-right: 40px; /* Space for toggle button */
+    padding: 0 20px; /* Space for buttons */
 }
 
 .fullscreen-subtitle.hidden {
     background: none; /* Hide gradient when hidden */
     padding: 10px 20px;
-    justify-content: flex-end; /* Align toggle button to the right */
+    justify-content: space-between; /* Spread buttons apart */
+    pointer-events: none; /* Let clicks pass through empty space */
+}
+
+.fullscreen-subtitle.hidden button {
+    pointer-events: auto; /* Re-enable clicks on buttons */
 }
 
 .fullscreen-subtitle.hidden p {
     display: none; /* Hide the text content */
 }
 
-.toggle-subtitle-btn {
-    position: absolute; /* Position relative to .fullscreen-subtitle */
-    right: 20px; /* Space from right edge of subtitle area */
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.1); /* Subtle background */
+.fs-play-btn {
+    background: rgba(255, 255, 255, 0.1);
     border: none;
     color: white;
     cursor: pointer;
-    z-index: 1; /* Above text if needed */
-    padding: 5px;
+    padding: 8px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px; /* Ensure it's a decent click target */
-    height: 36px;
+    width: 44px;
+    height: 44px;
     transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.fs-play-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.toggle-subtitle-btn {
+    background: rgba(255, 255, 255, 0.1); /* Subtle background */
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px; 
+    height: 44px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    /* Removed absolute positioning to use flexbox */
 }
 
 .toggle-subtitle-btn:hover {

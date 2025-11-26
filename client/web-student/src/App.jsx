@@ -53,7 +53,7 @@ const LiveIcon = () => (
 );
 
 // --- FullScreen Slide Component ---
-const FullScreenSlide = ({ slideUrl, text, onClose, onNext, onPrev, hasNext, hasPrev }) => {
+const FullScreenSlide = ({ slideUrl, text, onClose, onNext, onPrev, hasNext, hasPrev, isPlaying, onTogglePlay }) => {
     const [isSubtitleVisible, setIsSubtitleVisible] = useState(true);
 
     return (
@@ -73,7 +73,7 @@ const FullScreenSlide = ({ slideUrl, text, onClose, onNext, onPrev, hasNext, has
                 </button>
             )}
 
-            <div className="fullscreen-content">
+            <div className="fullscreen-content" onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}>
                 {slideUrl ? (
                     <img 
                         src={slideUrl} 
@@ -86,7 +86,16 @@ const FullScreenSlide = ({ slideUrl, text, onClose, onNext, onPrev, hasNext, has
                     </div>
                 )}
                 
-                <div className={`fullscreen-subtitle ${!isSubtitleVisible ? 'hidden' : ''}`}>
+                <div 
+                    className={`fullscreen-subtitle ${!isSubtitleVisible ? 'hidden' : ''}`}
+                    onClick={(e) => e.stopPropagation()} // Prevent click through to image toggle
+                >
+                    <button 
+                        className="fs-play-btn" 
+                        onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
+                    >
+                        {isPlaying ? <PauseIcon /> : <PlayIcon />}
+                    </button>
                     <p>{text}</p>
                     <button 
                         className="toggle-subtitle-btn" 
@@ -346,6 +355,8 @@ function App() {
               onPrev={handlePrev}
               hasNext={hasNext}
               hasPrev={hasPrev}
+              isPlaying={isPlaying}
+              onTogglePlay={togglePlay}
           />
       )}
 
