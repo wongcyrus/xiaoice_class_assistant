@@ -2,9 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Allow students to read the broadcast data
-    match /presentation_broadcast/{document=**} {
+    match /presentation_broadcast/{courseId} {
       allow read: if true;
-      allow write: if false; // Only backend can write
+      allow write: if false;
+      
+      // Explicitly allow reading from the new slide registry structure
+      match /presentations/{pptId}/slides/{slideId} {
+         allow read: if true;
+         allow write: if false;
+      }
     }
     
     // Default deny

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { doc, onSnapshot, collection, query, orderBy, limitToLast } from "firebase/firestore";
+import { doc, onSnapshot, collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 
-// Icons
+// --- Icons ---
 const PlayIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
         <path d="M8 5v14l11-7z" />
@@ -46,18 +46,18 @@ const ChevronRightIcon = () => (
     </svg>
 );
 
-const FullScreenSlide = ({ msg, langData, onClose, onTogglePlay, isPlaying, isCurrentPlaying, onNext, onPrev, hasNext, hasPrev }) => {
-    const [isSubtitleHidden, setIsSubtitleHidden] = useState(false);
+const LiveIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="8" />
+    </svg>
+);
 
-    if (!msg || !langData) return null;
-
-    const toggleSubtitle = (e) => {
-        e.stopPropagation(); // Prevent toggling play/pause when clicking the subtitle button
-        setIsSubtitleHidden(prev => !prev);
-    };
+// --- FullScreen Slide Component ---
+const FullScreenSlide = ({ slideUrl, text, onClose, onNext, onPrev, hasNext, hasPrev }) => {
+    const [isSubtitleVisible, setIsSubtitleVisible] = useState(true);
 
     return (
-        <div className="fullscreen-overlay" onClick={onTogglePlay}>
+        <div className="fullscreen-overlay">
             <button className="fullscreen-close-btn" onClick={(e) => { e.stopPropagation(); onClose(); }}>
                 <CloseIcon />
             </button>
@@ -74,10 +74,10 @@ const FullScreenSlide = ({ msg, langData, onClose, onTogglePlay, isPlaying, isCu
             )}
 
             <div className="fullscreen-content">
-                {langData.slide_link ? (
+                {slideUrl ? (
                     <img 
-                        src={langData.slide_link} 
-                        alt={`Slide ${msg.page_number}`} 
+                        src={slideUrl} 
+                        alt="Presentation Slide"
                         className="fullscreen-image" 
                     />
                 ) : (
@@ -86,18 +86,13 @@ const FullScreenSlide = ({ msg, langData, onClose, onTogglePlay, isPlaying, isCu
                     </div>
                 )}
                 
-                <div className="fullscreen-controls">
-                    {isCurrentPlaying && isPlaying ? (
-                        <div className="play-indicator"><PauseIcon /></div>
-                    ) : (
-                        <div className="play-indicator"><PlayIcon /></div>
-                    )}
-                </div>
-
-                <div className={`fullscreen-subtitle ${isSubtitleHidden ? 'hidden' : ''}`}>
-                    <p>{langData.text}</p>
-                    <button className="toggle-subtitle-btn" onClick={toggleSubtitle}>
-                        {isSubtitleHidden ? <ShowSubtitleIcon /> : <HideSubtitleIcon />}
+                <div className={`fullscreen-subtitle ${!isSubtitleVisible ? 'hidden' : ''}`}>
+                    <p>{text}</p>
+                    <button 
+                        className="toggle-subtitle-btn" 
+                        onClick={(e) => { e.stopPropagation(); setIsSubtitleVisible(!isSubtitleVisible); }}
+                    >
+                        {isSubtitleVisible ? <HideSubtitleIcon /> : <ShowSubtitleIcon />}
                     </button>
                 </div>
             </div>
@@ -105,45 +100,42 @@ const FullScreenSlide = ({ msg, langData, onClose, onTogglePlay, isPlaying, isCu
     );
 };
 
+// --- Main App Component ---
 function App() {
   const [searchParams] = useSearchParams();
   const courseId = searchParams.get('class') || searchParams.get('courseId') || 'current';
   
   const [status, setStatus] = useState({ text: "🟡 Connecting...", color: "orange" });
   const [currentLang, setCurrentLang] = useState('en');
-  const [messages, setMessages] = useState([]);
   const [supportedLangs, setSupportedLangs] = useState([]);
-  const [pptFilter, setPptFilter] = useState('');
-  const [currentPptFile, setCurrentPptFile] = useState('');
-  const [currentSlideNumber, setCurrentSlideNumber] = useState('');
-  const [isAutoFilter, setIsAutoFilter] = useState(true);
   
-  // Accessibility
-  const [fontSize, setFontSize] = useState(1.1); // Default rem value
+  // -- State for Live/Nav Logic --
+  const [livePptId, setLivePptId] = useState(null);
+  const [liveSlideId, setLiveSlideId] = useState(null);
+  
+  const [viewingSlideId, setViewingSlideId] = useState(null);
+  const [isLiveMode, setIsLiveMode] = useState(true); // Start in sync
+  
+  const [slideList, setSlideList] = useState([]); // List of integers
+  
+  const [slideData, setSlideData] = useState(null); // Content of Viewing Slide
+  const [liveData, setLiveData] = useState(null);   // Content of Live Broadcast (for audio)
 
   // Audio State
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playingMsgId, setPlayingMsgId] = useState(null);
-  const [playlist, setPlaylist] = useState([]); // Array of msg objects to play
   const [autoplay, setAutoplay] = useState(true);
-  const [isReady, setIsReady] = useState(false); // User has clicked "Join"
+  const [isReady, setIsReady] = useState(false); 
   
   // Full Screen State
-  const [fullScreenMsg, setFullScreenMsg] = useState(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Refs
   const audioRef = useRef(new Audio());
-  const latestMsgIdRef = useRef(null); 
-    const parentLastMsgIdRef = useRef(null);
+  const lastPlayedHash = useRef(null);
 
   const LANGUAGE_NAMES = {
     "en": "English",
-    "en-US": "English (US)",
     "zh": "Chinese (中文)",
-    "zh-CN": "Mandarin (简体中文)",
-    "cmn-CN": "Mandarin (简体中文)",
-    "zh-TW": "Mandarin (繁體中文)",
-    "yue": "Cantonese (Gwong2 dung1 waa2)",
     "yue-HK": "Cantonese (香港)",
     "es": "Spanish (Español)",
     "ja": "Japanese (日本語)",
@@ -152,82 +144,18 @@ function App() {
 
   const getLangName = (code) => LANGUAGE_NAMES[code] || code;
 
-  // Font Size Handlers
-  const increaseFont = () => setFontSize(prev => Math.min(prev + 0.2, 3.0));
-  const decreaseFont = () => setFontSize(prev => Math.max(prev - 0.2, 0.8));
-
   // Helper to extract data for current language
-  const getLangData = (data, lang) => {
-    if (!data.languages) return null;
-    let langData = data.languages[lang];
-    if (!langData) {
-        const match = Object.keys(data.languages).find(k => k.startsWith(lang) || lang.startsWith(k));
-        if (match) langData = data.languages[match];
+  const getLangContent = (languagesMap) => {
+    if (!languagesMap) return null;
+    let content = languagesMap[currentLang];
+    if (!content) {
+        const match = Object.keys(languagesMap).find(k => k.startsWith(currentLang));
+        if (match) content = languagesMap[match];
     }
-    return langData;
+    return content;
   };
 
-  // --- Audio Player Logic ---
-
-  const playMessage = (msg, clearQueue = true) => {
-    if (clearQueue) setPlaylist([]); 
-    
-    const langData = getLangData(msg, currentLang);
-    if (langData && langData.audio_url) {
-        setPlayingMsgId(msg.id);
-        audioRef.current.src = langData.audio_url;
-        audioRef.current.play()
-            .then(() => setIsPlaying(true))
-            .catch(e => {
-                console.error("Playback failed", e);
-                setIsPlaying(false);
-                setPlayingMsgId(null);
-            });
-    }
-  };
-
-  const togglePlay = (msg) => {
-      const isCurrent = playingMsgId === msg.id;
-      if (isCurrent && isPlaying) {
-          audioRef.current.pause();
-      } else {
-          playMessage(msg);
-      }
-  };
-
- 
-
-  // Audio Event Listeners
-  useEffect(() => {
-    const handleEnded = () => {
-        setIsPlaying(false);
-        setPlayingMsgId(null);
-        
-        if (playlist.length > 0) {
-            const [next, ...rest] = playlist;
-            setPlaylist(rest);
-            playMessage(next, false);
-        }
-    };
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-
-    const audio = audioRef.current;
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-
-    return () => {
-        audio.removeEventListener('ended', handleEnded);
-        audio.removeEventListener('play', handlePlay);
-        audio.removeEventListener('pause', handlePause);
-    };
-  }, [playlist, currentLang]); // Depend on currentLang so next play uses correct language URL
-
-  // --- Firestore Listeners ---
-
-  // 1. Metadata
+  // --- 1. Listen to Root Broadcast (Live State) ---
   useEffect(() => {
     if (!isReady) return;
 
@@ -235,162 +163,141 @@ function App() {
       if (docSnapshot.exists()) {
         setStatus({ text: "🟢 Live", color: "green" });
         const data = docSnapshot.data();
+
+        // Update Live Pointers
+        if (data.current_presentation_id) setLivePptId(data.current_presentation_id);
+        if (data.current_slide_id) setLiveSlideId(data.current_slide_id);
         
-        let langs = [];
-        if (data.supported_languages && Array.isArray(data.supported_languages)) {
-            langs = data.supported_languages;
-        } else if (data.languages) {
-            langs = Object.keys(data.languages);
+        // Update Live Data (for audio)
+        if (data.latest_languages) {
+            setLiveData(data.latest_languages);
+            const langs = Object.keys(data.latest_languages);
+            if (langs.length > 0) setSupportedLangs(langs);
         }
-        if (langs.length > 0) setSupportedLangs(langs);
       } else {
-          setStatus({ text: "🟡 Waiting...", color: "orange" });
+          setStatus({ text: "🟡 Waiting for Class...", color: "orange" });
       }
     });
     return () => unsubscribe();
   }, [courseId, isReady]);
 
-    // 1b. React to parent doc's `last_message_id` changes and move that message to top
-    useEffect(() => {
-        if (!isReady) return;
-
-        const unsub = onSnapshot(doc(db, "presentation_broadcast", courseId), (docSnapshot) => {
-            if (!docSnapshot.exists()) return;
-            const data = docSnapshot.data();
-            const lastId = data && data.last_message_id;
-            if (!lastId) return;
-
-            // If last_message_id changed, reorder local messages so that the referenced
-            // message appears as the most recent (end of the chronological array).
-            if (parentLastMsgIdRef.current !== lastId) {
-                parentLastMsgIdRef.current = lastId;
-                setMessages(prev => {
-                    const idx = prev.findIndex(m => m.id === lastId);
-                    if (idx === -1) return prev; // message not yet in local cache
-                    // Move the message to the end of the array (newest)
-                    const item = prev[idx];
-                    const rest = [...prev.slice(0, idx), ...prev.slice(idx + 1)];
-                    return [...rest, item];
-                });
-            }
-        });
-
-        return () => unsub();
-    }, [courseId, isReady]);
-
-  // 2. Messages
+  // --- 2. Sync Logic: Keep viewingSlideId in sync with liveSlideId if isLiveMode ---
   useEffect(() => {
-    if (!isReady) return;
+      if (isLiveMode && liveSlideId) {
+          setViewingSlideId(liveSlideId);
+      }
+  }, [liveSlideId, isLiveMode]);
 
-    // Get messages sorted by time (Oldest -> Newest)
-    const messagesRef = collection(db, "presentation_broadcast", courseId, "messages");
-    const q = query(messagesRef, orderBy("updated_at", "asc"), limitToLast(100));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .sort((a, b) => (a.updated_at?.seconds || 0) - (b.updated_at?.seconds || 0));
-
-      setMessages(msgs);
-    });
-
-    return () => unsubscribe();
-  }, [courseId, isReady]);
-
-  // 3. React to New Messages (Autoplay & Follow Presenter)
+  // --- 3. Fetch Slide List for Navigation ---
   useEffect(() => {
-      if (messages.length > 0) {
-          const lastMsg = messages[messages.length - 1];
-          
-          // Always update current tracking info
-          setCurrentPptFile(lastMsg.ppt_filename || '');
-          setCurrentSlideNumber(lastMsg.page_number || '');
+      if (!isReady || !livePptId) return;
+      
+      // Fetch list of slides to know what previous/next exist
+      const slidesCol = collection(db, "presentation_broadcast", courseId, "presentations", livePptId, "slides");
+      getDocs(slidesCol).then(snapshot => {
+          // Assuming ids are numeric strings "1", "2", etc.
+          const ids = snapshot.docs
+              .map(d => parseInt(d.id, 10))
+              .filter(n => !isNaN(n))
+              .sort((a, b) => a - b);
+          setSlideList(ids);
+      }).catch(console.error);
+  }, [courseId, livePptId, isReady]);
 
-          // Auto-follow presenter: Update filter if it differs AND auto-follow is enabled
-          if (isAutoFilter) {
-             if (lastMsg.ppt_filename && pptFilter !== lastMsg.ppt_filename) {
-                 setPptFilter(lastMsg.ppt_filename);
-             } else if (!pptFilter && lastMsg.ppt_filename) {
-                 setPptFilter(lastMsg.ppt_filename);
-             }
-          }
-          
-          // Handle New Message Arrival
-          if (latestMsgIdRef.current !== lastMsg.id) {
-              latestMsgIdRef.current = lastMsg.id;
-              if (autoplay) {
-                  playMessage(lastMsg, true);
-                  
-                  // If user is in fullscreen, we want to ensure the view updates 
-                  // (Handled by the sync effect below, but explicitly setting here reduces latency)
-                  if (fullScreenMsg) {
-                      setFullScreenMsg(lastMsg);
-                  }
+  // --- 4. Listen/Fetch Viewing Slide Data ---
+  useEffect(() => {
+      if (!isReady || !livePptId || !viewingSlideId) {
+          if (viewingSlideId === null) setSlideData(null);
+          return;
+      }
+
+      const slideRef = doc(db, "presentation_broadcast", courseId, "presentations", livePptId, "slides", String(viewingSlideId));
+      const unsubscribe = onSnapshot(slideRef, (docSnapshot) => {
+          if (docSnapshot.exists()) {
+              setSlideData(docSnapshot.data());
+          } else {
+              // If doc missing (maybe audio only update?), try to fallback to liveData if we are live
+              if (String(viewingSlideId) === String(liveSlideId)) {
+                  setSlideData({ languages: liveData }); 
+              } else {
+                  setSlideData(null);
               }
           }
-      }
-  }, [messages, autoplay, pptFilter, fullScreenMsg, isAutoFilter]); // Dependencies allow access to fresh state
+      });
+      return () => unsubscribe();
+  }, [courseId, isReady, livePptId, viewingSlideId, liveSlideId, liveData]); // Re-run if liveData updates and we are live
 
-  // 4. Sync FullScreen view with Audio Player
+  // --- Render Logic Pre-calculation ---
+  const liveContent = getLangContent(liveData);
+  const viewingContent = getLangContent(slideData?.languages);
+  
+  // Audio Source Decision
+  // If Sync is ON: Play whatever comes down the Live pipe.
+  // If Sync is OFF: Play whatever is attached to the Viewing Slide.
+  const activeContent = isLiveMode ? liveContent : viewingContent;
+  const activeAudioUrl = activeContent?.audio_url;
+
+  // --- 5. Audio Player Logic ---
   useEffect(() => {
-    if (fullScreenMsg && playingMsgId) {
-        const msgPlaying = messages.find(m => m.id === playingMsgId);
-        // If the audio playing is different from what we show, update the show
-        if (msgPlaying && msgPlaying.id !== fullScreenMsg.id) {
-            setFullScreenMsg(msgPlaying);
-        }
-    }
-  }, [playingMsgId, messages, fullScreenMsg]);
+      if (!activeAudioUrl || !autoplay) return;
 
-  // Filter messages for slideshow navigation (Chronological order)
-  const slideshowMessages = messages.filter(msg => {
-      if (pptFilter) {
-          const pptName = (msg.ppt_filename || "");
-          if (pptName !== pptFilter) return false;
+      if (lastPlayedHash.current !== activeAudioUrl) {
+          lastPlayedHash.current = activeAudioUrl;
+          
+          audioRef.current.src = activeAudioUrl;
+          audioRef.current.play()
+              .then(() => setIsPlaying(true))
+              .catch(e => console.error("Autoplay blocked:", e));
       }
-      const langData = getLangData(msg, currentLang);
-      return langData && langData.slide_link;
-  });
+  }, [activeAudioUrl, autoplay]);
 
-  const currentIndex = fullScreenMsg ? slideshowMessages.findIndex(m => m.id === fullScreenMsg.id) : -1;
-  const hasPrev = currentIndex > 0;
-  const hasNext = currentIndex !== -1 && currentIndex < slideshowMessages.length - 1;
+  // Audio Events
+  useEffect(() => {
+      const audio = audioRef.current;
+      const handlePlay = () => setIsPlaying(true);
+      const handlePause = () => setIsPlaying(false);
+      const handleEnded = () => setIsPlaying(false);
 
-  const handlePrevSlide = () => {
-      if (hasPrev) {
-          // Stop current audio and clear tracking to prevent auto-revert
-          audioRef.current.pause();
-          setIsPlaying(false);
-          setPlayingMsgId(null);
+      audio.addEventListener('play', handlePlay);
+      audio.addEventListener('pause', handlePause);
+      audio.addEventListener('ended', handleEnded);
+      return () => {
+          audio.removeEventListener('play', handlePlay);
+          audio.removeEventListener('pause', handlePause);
+          audio.removeEventListener('ended', handleEnded);
+      };
+  }, []);
 
-          const prevMsg = slideshowMessages[currentIndex - 1];
-          setFullScreenMsg(prevMsg);
-          playMessage(prevMsg);
+  const togglePlay = () => {
+      if (isPlaying) audioRef.current.pause();
+      else audioRef.current.play();
+  };
+
+  // --- Handlers ---
+  const handleNext = () => {
+      if (!viewingSlideId || slideList.length === 0) return;
+      const currentNum = parseInt(viewingSlideId, 10);
+      const idx = slideList.indexOf(currentNum);
+      if (idx !== -1 && idx < slideList.length - 1) {
+          setViewingSlideId(String(slideList[idx + 1]));
+          setIsLiveMode(false); // User manually navigated, break sync
       }
   };
 
-  const handleNextSlide = () => {
-      if (hasNext) {
-          // Stop current audio and clear tracking to prevent auto-revert
-          audioRef.current.pause();
-          setIsPlaying(false);
-          setPlayingMsgId(null);
-
-          const nextMsg = slideshowMessages[currentIndex + 1];
-          setFullScreenMsg(nextMsg);
-          playMessage(nextMsg);
+  const handlePrev = () => {
+      if (!viewingSlideId || slideList.length === 0) return;
+      const currentNum = parseInt(viewingSlideId, 10);
+      const idx = slideList.indexOf(currentNum);
+      if (idx > 0) {
+          setViewingSlideId(String(slideList[idx - 1]));
+          setIsLiveMode(false); // User manually navigated, break sync
       }
   };
 
-  // Display Order: Newest First
-  const displayMessages = [...messages].reverse().filter(msg => {
-    if (!pptFilter) return true;
-    const pptName = (msg.ppt_filename || "");
-    return pptName === pptFilter;
-  });
-
-  // Get unique PPT filenames for dropdown
-  const uniquePptFiles = [...new Set(messages.map(m => m.ppt_filename).filter(Boolean))];
+  const handleGoLive = () => {
+      setViewingSlideId(liveSlideId);
+      setIsLiveMode(true);
+  };
 
   if (!isReady) {
       return (
@@ -401,18 +308,26 @@ function App() {
       );
   }
 
+  // Priority: Viewing Slide Registry > Live Data (fallback if visual matches)
+  const visualUrl = viewingContent?.slide_link || (String(viewingSlideId) === String(liveSlideId) ? liveContent?.slide_link : null);
+  
+  // Text priority: Viewing Slide text (if browsing) -> Live text (if live)
+  // This ensures text matches the visual slide
+  const displayText = (isLiveMode ? liveContent?.text : viewingContent?.text) || "(Translating...)";
+
+  const currentNum = parseInt(viewingSlideId, 10);
+  const hasPrev = slideList.length > 0 && slideList.indexOf(currentNum) > 0;
+  const hasNext = slideList.length > 0 && slideList.indexOf(currentNum) < slideList.length - 1;
+
   return (
-    <div className="container">
-      {fullScreenMsg && (
+    <div className="container single-slide-view">
+      {isFullScreen && (
           <FullScreenSlide 
-              msg={fullScreenMsg} 
-              langData={getLangData(fullScreenMsg, currentLang)}
-              onClose={() => setFullScreenMsg(null)}
-              onTogglePlay={() => togglePlay(fullScreenMsg)}
-              isPlaying={isPlaying}
-              isCurrentPlaying={playingMsgId === fullScreenMsg.id}
-              onNext={handleNextSlide}
-              onPrev={handlePrevSlide}
+              slideUrl={visualUrl} 
+              text={displayText}
+              onClose={() => setIsFullScreen(false)}
+              onNext={handleNext}
+              onPrev={handlePrev}
               hasNext={hasNext}
               hasPrev={hasPrev}
           />
@@ -423,49 +338,72 @@ function App() {
         <div className="controls">
             <div className="status" style={{ color: status.color }}>{status.text}</div>
             <select value={currentLang} onChange={(e) => setCurrentLang(e.target.value)}>
-                {supportedLangs.length > 0 ? (
-                    supportedLangs.map(lang => <option key={lang} value={lang}>{getLangName(lang)}</option>)
-                ) : (
-                    <>
-                        <option value="en">English</option>
-                        <option value="zh">Chinese</option>
-                    </>
-                )}
+                {supportedLangs.map(lang => <option key={lang} value={lang}>{getLangName(lang)}</option>)}
             </select>
         </div>
       </header>
       
       <div className="sub-header">
-        <div className="filter-controls">
-            <label className="auto-follow-toggle">
-                <input 
-                    type="checkbox" 
-                    checked={isAutoFilter} 
-                    onChange={(e) => {
-                        const checked = e.target.checked;
-                        setIsAutoFilter(checked);
-                        if (checked) {
-                            setPptFilter(currentPptFile);
-                        }
-                    }} 
-                />
-                <span>Auto-follow</span>
-            </label>
+        <div className="nav-controls" style={{display:'flex', alignItems:'center', gap:'10px'}}>
+            <button disabled={!hasPrev} onClick={handlePrev} className="nav-btn-mini">
+                <ChevronLeftIcon />
+            </button>
+            
             <select 
-                value={pptFilter}
+                value={viewingSlideId || ''} 
                 onChange={(e) => {
-                    setPptFilter(e.target.value);
-                    setIsAutoFilter(false);
+                    const newVal = e.target.value;
+                    setViewingSlideId(newVal);
+                    // If user manually selects the LIVE slide, we could auto-sync, 
+                    // but let's keep it manual unless they click the LIVE badge.
+                    // Actually, if they pick the *current* live ID, might as well sync?
+                    // Let's stick to standard behavior: manual nav breaks sync.
+                    setIsLiveMode(false); 
                 }}
-                className="ppt-filter-select"
-                disabled={isAutoFilter}
+                style={{
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ccc',
+                    fontSize: '0.9rem',
+                    background: 'white',
+                    maxWidth: '80px'
+                }}
             >
-                {uniquePptFiles.map(file => (
-                    <option key={file} value={file}>{file}</option>
+                {slideList.map(id => (
+                    <option key={id} value={id}>#{id}</option>
                 ))}
             </select>
+
+            <button 
+                onClick={handleGoLive} 
+                className={`live-badge ${isLiveMode ? 'active' : 'inactive'}`}
+                style={{
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '5px',
+                    border: isLiveMode ? '1px solid #4caf50' : '1px solid #ccc',
+                    background: isLiveMode ? '#e8f5e9' : '#fff',
+                    color: isLiveMode ? '#2e7d32' : '#666',
+                    borderRadius: '20px',
+                    padding: '4px 10px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem'
+                }}
+            >
+                <div style={{
+                    width: '8px', 
+                    height: '8px', 
+                    borderRadius: '50%', 
+                    background: isLiveMode ? '#4caf50' : '#ccc'
+                }}></div>
+                {isLiveMode ? 'LIVE' : 'Sync'}
+            </button>
+
+            <button disabled={!hasNext} onClick={handleNext} className="nav-btn-mini">
+                <ChevronRightIcon />
+            </button>
         </div>
-        
+
         <label className="autoplay-toggle">
             <input 
             type="checkbox" 
@@ -474,63 +412,29 @@ function App() {
             /> 
             <span>Autoplay</span>
         </label>
-        
-        <div className="font-controls">
-            <span className="font-label">Size:</span>
-            <button className="font-btn" onClick={decreaseFont} title="Decrease Font">A-</button>
-            <button className="font-btn" onClick={increaseFont} title="Increase Font">A+</button>
-        </div>
       </div>
 
-      <div className="chat-area">
-        {displayMessages.length === 0 && (
-           <div className="empty-state">Waiting for presentation...</div>
-        )}
-        {displayMessages.map((msg) => {
-          const langData = getLangData(msg, currentLang);
-          const hasAudio = langData && langData.audio_url;
-          const hasSlideLink = langData && langData.slide_link;
-          const isCurrentPlaying = playingMsgId === msg.id;
-
-          return (
-            <div key={msg.id} className="chat-message">
-              {hasSlideLink && (
-                <div className="slide-image-wrapper" onClick={() => {
-                    setFullScreenMsg(msg);
-                    playMessage(msg);
-                }}>
-                  <img src={langData.slide_link} alt={`Slide ${msg.page_number}`} className="slide-image" />
+      <div className="main-stage">
+          <div className="slide-container" onClick={() => setIsFullScreen(true)}>
+            {visualUrl ? (
+                <img src={visualUrl} alt="Current Slide" className="main-slide-image" />
+            ) : (
+                <div className="slide-placeholder">
+                    <p>No Slide Image Available</p>
+                    <small>Slide #{viewingSlideId}</small>
                 </div>
-              )}
-              <div 
-                className={`message-bubble ${isCurrentPlaying ? 'playing' : ''} ${hasAudio ? 'has-audio' : ''} ${hasSlideLink ? 'has-slide' : ''}`}
-                style={{ fontSize: `${fontSize}rem` }}
-                onClick={() => {
-                    setFullScreenMsg(msg);
-                    playMessage(msg);
-                }}
-              >
-                <div className="message-content-wrapper">
-                    <div className="message-content">
-                        {langData ? langData.text : <span className="missing-lang">(Translating...)</span>}
-                    </div>
-                    {msg.page_number && (
-                        <div className="msg-footer">
-                            Slide {msg.page_number}
-                        </div>
-                    )}
-                </div>
-                {hasAudio && isCurrentPlaying && isPlaying && (
-                    <div className="msg-status-icon"><PauseIcon /></div>
-                )}
-                {hasAudio && (!isCurrentPlaying || !isPlaying) && (
-                    <div className="msg-status-icon"><PlayIcon /></div>
-                )}
-              </div>
+            )}
+            <div className="slide-overlay-btn">Click to Expand</div>
+          </div>
 
-            </div>
-          );
-        })}
+          <div className="caption-container">
+             <div className="caption-text">
+                 {displayText}
+             </div>
+             <button className="play-btn" onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
+                {isPlaying ? <PauseIcon /> : <PlayIcon />}
+             </button>
+          </div>
       </div>
     </div>
   );

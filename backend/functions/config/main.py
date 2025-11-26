@@ -279,7 +279,7 @@ def config(request):
                 logger.info("Completed MP3 generation for %d languages", len(broadcast_payload["languages"]))
             
             # Broadcast the updates to a dedicated collection for listeners
-            if broadcast_payload["languages"]:
+            if broadcast_payload.get("languages"):
                 try:
                     # TARGET THE CLIENT PROJECT
                     broadcast_db = firestore.Client(
@@ -290,119 +290,42 @@ def config(request):
                     doc_id = course_id if course_id else 'current'
                     broadcast_ref = broadcast_db.collection('presentation_broadcast').document(doc_id)
                     
-                    # Read current state for robust deduplication
-                    # Diagnostic: log incoming identifiers so we can debug intermittent misses
-                    logger.info("[BROADCAST] Incoming ppt_filename=%s page_number=%s course_id=%s",
-                                request_json.get('ppt_filename'), request_json.get('page_number'), course_id)
-
-                    doc_snap = broadcast_ref.get()
-                    last_message_id = None
-                    prev_ppt = None
-                    prev_ppt_norm = None
-                    prev_page = None
-                    prev_ctx_hash = None
-
-                    if doc_snap.exists:
-                        data = doc_snap.to_dict()
-                        prev_ppt = data.get('ppt_filename')
-                        prev_ppt_norm = data.get('ppt_filename_norm')
-                        prev_page = str(data.get('page_number', ''))
-                        last_message_id = data.get('last_message_id')
-                        prev_ctx_hash = data.get('context_hash')
-                        logger.info("[BROADCAST] Existing parent doc state: ppt_filename=%s page_number=%s last_message_id=%s",
-                                    prev_ppt, prev_page, last_message_id)
-                    else:
-                        logger.info("[BROADCAST] No existing parent doc for doc_id=%s", doc_id)
+                    ppt_filename = broadcast_payload.get('ppt_filename')
+                    page_number = str(broadcast_payload.get('page_number', '0'))
                     
-                    curr_ppt = broadcast_payload.get('ppt_filename')
-                    curr_ppt_norm = broadcast_payload.get('ppt_filename_norm')
-                    curr_page = str(broadcast_payload.get('page_number', ''))
-                    curr_ctx_hash = broadcast_payload.get('context_hash')
+                    # 1. Prepare the "Live State" update (Always happens)
+                    live_update = {
+                        "latest_languages": broadcast_payload.get("languages"),
+                        "updated_at": firestore.SERVER_TIMESTAMP
+                    }
 
-                    # Check for duplicate
-                    # Primary: same ppt_filename + page_number
-                    # Secondary: same normalized context hash (covers cases where filenames differ)
-                    is_duplicate = False
-                    if curr_ppt and prev_ppt and curr_page and prev_page:
-                        # Prefer normalized comparison when available
-                        if curr_ppt_norm and prev_ppt_norm:
-                            if curr_ppt_norm == prev_ppt_norm and curr_page == prev_page:
-                                is_duplicate = True
-                        else:
-                            if curr_ppt == prev_ppt and curr_page == prev_page:
-                                is_duplicate = True
-                    # Fallback: if both have context hashes and they match, treat as duplicate
-                    if not is_duplicate and curr_ctx_hash and prev_ctx_hash:
-                        if curr_ctx_hash == prev_ctx_hash:
-                            is_duplicate = True
-                            
-                    if is_duplicate:
-                        # If parent doc provides last_message_id, update it directly
-                        if last_message_id:
-                            logger.info("Duplicate slide detected. Updating existing message: %s", last_message_id)
-                            broadcast_ref.collection('messages').document(last_message_id).set(broadcast_payload, merge=True)
-                            broadcast_payload['last_message_id'] = last_message_id
-                        else:
-                            # Parent doc doesn't have last_message_id; attempt to find the matching
-                            # child message by context_hash first, then by normalized ppt+page.
-                            found_id = None
-                            try:
-                                msgs_col = broadcast_ref.collection('messages')
+                    # 2. Handle Slide Pointer and Registry
+                    # Only proceed if we have enough info to identify a slide
+                    if ppt_filename and broadcast_payload.get('page_number') is not None:
+                        # Sanitize ppt_filename for Doc ID
+                        safe_ppt_id = ppt_filename.replace('/', '_').replace('\\', '_')
+                        
+                        # A. Always update the Pointer in the root document (The "Live Slide")
+                        live_update["current_presentation_id"] = safe_ppt_id
+                        live_update["current_slide_id"] = page_number
 
-                                # Prefer deterministic doc id when we have a context hash or normalized ppt+page
-                                det_id = None
-                                if curr_ctx_hash:
-                                    det_id = f"ctx_{curr_ctx_hash}"
-                                elif curr_ppt_norm and curr_page:
-                                    det_id = f"ppt_{curr_ppt_norm}_{curr_page}"
+                        # B. Conditionally update the Registry (Only if we have visual assets)
+                        has_slides = False
+                        for lang_content in broadcast_payload.get("languages", {}).values():
+                            if lang_content.get("slide_link"):
+                                has_slides = True
+                                break
+                        
+                        if has_slides:
+                            slide_ref = broadcast_ref.collection('presentations').document(safe_ppt_id).collection('slides').document(page_number)
+                            # Use merge=True to preserve any existing fields in case of re-broadcasts or partial updates
+                            slide_ref.set(broadcast_payload, merge=True)
+                            logger.info(f"Updated slide registry: {safe_ppt_id} / {page_number}")
 
-                                # Check deterministic doc first (cheap get)
-                                if det_id:
-                                    det_doc = msgs_col.document(det_id).get()
-                                    if det_doc.exists:
-                                        found_id = det_id
-
-                                # Fallback: query by context_hash or ppt+page
-                                if not found_id:
-                                    if curr_ctx_hash:
-                                        q = msgs_col.where('context_hash', '==', curr_ctx_hash).limit(1)
-                                        docs = q.get()
-                                        if docs:
-                                            found_id = docs[0].id
-                                if not found_id and curr_ppt_norm and curr_page:
-                                    q = msgs_col.where('ppt_filename_norm', '==', curr_ppt_norm).where('page_number', '==', curr_page).limit(1)
-                                    docs = q.get()
-                                    if docs:
-                                        found_id = docs[0].id
-                            except Exception as lookup_e:
-                                logger.warning("Failed to lookup existing message for dedupe: %s", lookup_e)
-
-                            if found_id:
-                                logger.info("Found existing message by lookup. Updating message: %s", found_id)
-                                broadcast_ref.collection('messages').document(found_id).set(broadcast_payload, merge=True)
-                                broadcast_payload['last_message_id'] = found_id
-                            else:
-                                # No existing message found; create or overwrite deterministic doc if available
-                                if det_id:
-                                    msgs_col.document(det_id).set(broadcast_payload)
-                                    logger.info("Created/Updated deterministic message: %s", det_id)
-                                    broadcast_payload['last_message_id'] = det_id
-                                else:
-                                    new_msg_ref = msgs_col.document()
-                                    new_msg_ref.set(broadcast_payload)
-                                    logger.info("New slide. Created message: %s", new_msg_ref.id)
-                                    broadcast_payload['last_message_id'] = new_msg_ref.id
-                    else:
-                        # Create new history doc when not duplicate
-                        new_msg_ref = broadcast_ref.collection('messages').document()
-                        new_msg_ref.set(broadcast_payload)
-                        logger.info("New slide. Created message: %s", new_msg_ref.id)
-                        broadcast_payload['last_message_id'] = new_msg_ref.id
-
-                    # Update the parent document (current state)
-                    broadcast_ref.set(broadcast_payload)
+                    # Execute the Live Update on the Root Document
+                    broadcast_ref.set(live_update, merge=True)
                     
-                    logger.info(f"Successfully broadcasted presentation updates to xiaoice-class-assistant (doc: {doc_id})")
+                    logger.info(f"Successfully broadcasted updates to xiaoice-class-assistant (doc: {doc_id}).")
                 except Exception as b_e:
                     logger.error("Failed to broadcast presentation updates: %s", b_e)
 

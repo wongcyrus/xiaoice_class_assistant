@@ -64,249 +64,321 @@ select {
     margin-right: 5px;
 }
 
-.filter-controls {
-    display: flex;
-    align-items: center;
-}
-
-.ppt-filter-select {
-    padding: 6px 10px;
-    border-radius: 20px;
-    border: 1px solid #ddd;
-    font-size: 0.9rem;
-    background-color: #fff;
-    cursor: pointer;
-    max-width: 200px;
-}
-
-.current-presentation-info {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #1a73e8;
-    margin-right: 15px; /* Adjust spacing between current info and filter dropdown */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 1;
-}
-
 .sub-header {
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     padding: 10px 20px;
-
     background: #fafafa;
-
     border-bottom: 1px solid #eee;
-
     flex-shrink: 0;
-
-}
-
-
-
-.font-controls {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 5px;
-
-}
-
-
-
-.font-label {
-
-    font-size: 0.85rem;
-
-    color: #666;
-
-    margin-right: 5px;
-
-}
-
-
-
-.font-btn {
-
-    background: #fff;
-
-    border: 1px solid #ddd;
-
-    color: #5f6368;
-
-    padding: 4px 10px;
-
-    border-radius: 4px;
-
-    font-size: 0.85rem;
-
-    cursor: pointer;
-
-    transition: all 0.1s;
-
-    font-weight: 600;
-
-}
-
-
-
-.font-btn:hover {
-
-    background: #f0f0f0;
-
-    border-color: #ccc;
-
-    color: #1a73e8;
-
-}
-
-
-
-.auto-follow-toggle {
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #5f6368;
-    cursor: pointer;
-    user-select: none;
-    margin-right: 15px;
 }
 
 .autoplay-toggle {
-
     font-size: 0.85rem;
-
     display: flex;
-
     align-items: center;
-
     gap: 8px;
-
     color: #5f6368;
-
     cursor: pointer;
-
     user-select: none;
-
 }
 
-
-
-.chat-area {
-
+/* Main Stage - Single Slide View */
+.main-stage {
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent double scrollbars */
+    position: relative;
+    background-color: #f8f9fa;
+}
 
-    min-height: 0; /* Critical for nested flex scrolling */
-
-    overflow-y: auto;
-
+.slide-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     padding: 20px;
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 20px;
-
-    background-color: #f4f6f8;
-
+    position: relative;
+    cursor: zoom-in;
+    overflow: hidden;
+    min-height: 0; /* Critical for flex child */
 }
 
-.empty-state {
-    text-align: center;
-    color: #999;
-    margin-top: 50px;
-    font-style: italic;
+.main-slide-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
 }
 
-.chat-message {
-    display: flex;
-    flex-direction: column;
-    max-width: 90%;
-    align-self: center; /* Centered or full width? let's go full width block */
-    width: 100%;
-    animation: fadeIn 0.3s ease;
+.slide-container:hover .main-slide-image {
+    transform: scale(1.01);
 }
 
-.message-bubble {
-    background-color: white;
-    padding: 12px 16px;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    font-size: 1.1rem;
-    line-height: 1.5;
-    border: 1px solid #e0e0e0;
-    color: #202124;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start; /* Changed from center to align top */
-    gap: 15px;
-    cursor: pointer; /* Indicate clickability */
-    transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.message-bubble:active {
-    transform: scale(0.98);
-}
-
-.message-content-wrapper {
-    flex-grow: 1;
+.slide-placeholder {
     display: flex;
     flex-direction: column;
-}
-
-.message-content {
-    margin-bottom: 4px;
-}
-
-.msg-footer {
-    font-size: 0.75rem;
+    align-items: center;
+    justify-content: center;
     color: #888;
-    text-align: right;
-    margin-top: 4px;
+    height: 100%;
+    text-align: center;
+    background-color: #eee;
+    width: 100%;
+    border-radius: 8px;
 }
 
-.missing-lang {
-    font-style: italic;
-    opacity: 0.6;
+.slide-overlay-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
     font-size: 0.9rem;
 }
 
-.msg-status-icon {
-    color: #1a73e8;
+.slide-container:hover .slide-overlay-btn {
+    opacity: 1;
+}
+
+/* Caption Area */
+.caption-container {
+    background: white;
+    border-top: 1px solid #eee;
+    padding: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    min-height: 150px; /* Reserve space for text */
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
+    z-index: 5;
+}
+
+.caption-text {
+    flex-grow: 1;
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: #202124;
+    overflow-y: auto;
+    max-height: 200px;
+}
+
+.play-btn {
+    background: #1a73e8;
+    color: white;
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
     flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background 0.2s, transform 0.1s;
 }
 
-.message-bubble.playing {
-    border-color: #1a73e8;
-    background-color: #f0f7ff;
-    box-shadow: 0 2px 8px rgba(26, 115, 232, 0.2);
+.play-btn:hover {
+    background: #1557b0;
 }
 
-.original-context {
-    font-size: 0.75rem;
+.play-btn:active {
+    transform: scale(0.95);
+}
+
+/* Full Screen Overlay */
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95); /* Darker overlay for better contrast */
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.fullscreen-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.2); /* Slightly more visible */
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2010;
+    transition: background 0.2s;
+}
+
+.fullscreen-close-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.fullscreen-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    padding-bottom: 0; /* Subtitle will manage its own space */
+}
+
+.fullscreen-image {
+    max-width: 90%; /* Give some margin */
+    max-height: 90vh; /* Leave room for potential top/bottom UI elements */
+    object-fit: contain;
+}
+
+.fullscreen-placeholder {
     color: #888;
-    margin-top: 6px;
-    margin-left: 10px;
-    border-left: 2px solid #ddd;
-    padding-left: 8px;
+    font-size: 1.5rem;
+    text-align: center;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
+.fullscreen-subtitle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0) 100%); /* Fade out towards top */
+    padding: 40px 20px 30px;
+    text-align: center;
+    box-sizing: border-box;
+    transition: all 0.3s ease-in-out;
+    display: flex; /* For subtitle toggle button */
+    justify-content: center;
+    align-items: center;
+}
+
+.fullscreen-subtitle p {
+    color: white;
+    font-size: 1.3rem;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.5;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    flex-grow: 1; /* Allow text to take space */
+    padding-right: 40px; /* Space for toggle button */
+}
+
+.fullscreen-subtitle.hidden {
+    background: none; /* Hide gradient when hidden */
+    padding: 10px 20px;
+    justify-content: flex-end; /* Align toggle button to the right */
+}
+
+.fullscreen-subtitle.hidden p {
+    display: none; /* Hide the text content */
+}
+
+.toggle-subtitle-btn {
+    position: absolute; /* Position relative to .fullscreen-subtitle */
+    right: 20px; /* Space from right edge of subtitle area */
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1); /* Subtle background */
+    border: none;
+    color: white;
+    cursor: pointer;
+    z-index: 1; /* Above text if needed */
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px; /* Ensure it's a decent click target */
+    height: 36px;
+    transition: background 0.2s;
+}
+
+.toggle-subtitle-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.toggle-subtitle-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Navigation Buttons for Fullscreen */
+.nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    border: none;
+    color: white;
+    width: 50px; /* Slightly smaller */
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2010;
+    transition: background 0.2s;
+}
+
+.nav-btn:hover {
+    background: rgba(0, 0, 0, 0.8); /* Darker on hover */
+}
+
+.nav-btn.left {
+    left: 20px;
+}
+
+.nav-btn.right {
+    right: 20px;
+}
+
+@media (max-width: 600px) {
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 0, 0, 0.6); 
+    }
+    .nav-btn.left {
+        left: 10px;
+    }
+    .nav-btn.right {
+        right: 10px;
+    }
+    .nav-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+    .fullscreen-subtitle p {
+        font-size: 1rem;
+    }
+    .fullscreen-subtitle {
+        padding: 20px 10px;
+    }
+    .toggle-subtitle-btn {
+        right: 10px;
+    }
 }
 
 /* Splash Screen */
@@ -322,241 +394,4 @@ select {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-}
-
-.splash-screen h1 {
-    font-size: 2rem;
-    margin-bottom: 2rem;
-    color: #1a73e8;
-}
-
-.splash-screen button {
-    background-color: #1a73e8;
-    color: white;
-    border: none;
-    padding: 12px 30px;
-    font-size: 1.2rem;
-    border-radius: 30px;
-    cursor: pointer;
-    box-shadow: 0 4px 6px rgba(26, 115, 232, 0.2);
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.splash-screen button:hover {
-    background-color: #1557b0;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px rgba(26, 115, 232, 0.3);
-}
-
-.splash-screen button:active {
-    transform: translateY(0);
-}
-
-/* Mobile Friendly Adjustments */
-@media (max-width: 600px) {
-    .chat-message {
-        max-width: 100%;
-    }
-
-    header, .sub-header {
-        padding: 10px 15px;
-    }
-
-    h1 {
-        font-size: 1.1rem;
-    }
-
-    .message-bubble {
-        font-size: 1rem;
-        padding: 10px 14px;
-    }
-}
-
-/* Slide Images in Feed */
-.slide-image-wrapper {
-    margin-bottom: 10px; /* Space between image and text bubble */
-    width: 100%;
-    max-width: 100%;
-    display: flex; /* To center the image */
-    justify-content: center;
-    border-radius: 8px; /* Optional: subtle rounded corners */
-    overflow: hidden; /* Ensures image corners respect border-radius */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for image */
-    cursor: pointer;
-}
-
-.slide-image {
-    max-width: 100%;
-    height: auto;
-    display: block; /* Remove extra space below image */
-}
-
-/* Adjust chat message spacing when slide is present */
-.chat-message.has-slide {
-    margin-top: 15px; /* More space between messages when a slide is present */
-}
-
-/* --- Full Screen Overlay Styles --- */
-.fullscreen-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #000;
-    z-index: 2000; /* Above everything */
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Center vertical */
-    align-items: center; /* Center horizontal */
-    animation: fadeIn 0.2s ease-out;
-}
-
-.fullscreen-close-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.5);
-    border: none;
-    color: white;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 2010;
-}
-
-.fullscreen-content {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-}
-
-.fullscreen-image {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain; /* Ensure entire slide is visible */
-}
-
-.fullscreen-placeholder {
-    color: #888;
-    font-size: 1.2rem;
-}
-
-.fullscreen-subtitle {
-    position: absolute;
-    bottom: 40px; /* Space from bottom */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 800px;
-    background-color: rgba(0, 0, 0, 0.75); /* Semi-transparent black */
-    color: white;
-    padding: 15px 20px;
-    border-radius: 12px;
-    text-align: center;
-    font-size: 1.2rem;
-    line-height: 1.5;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    backdrop-filter: blur(4px);
-    display: flex; /* Allow button next to text */
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    padding-right: 50px; /* Make space for the button */
-    transition: all 0.3s ease-in-out;
-}
-
-.fullscreen-subtitle.hidden {
-    height: 40px; /* Small icon height */
-    width: 40px;
-    padding: 0;
-    border-radius: 50%; /* Make it a circle */
-    background-color: rgba(0, 0, 0, 0.75);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden; /* Hide text */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.fullscreen-subtitle.hidden p {
-    display: none; /* Hide the text content */
-}
-
-.toggle-subtitle-btn {
-    position: absolute; /* Position relative to .fullscreen-subtitle */
-    right: 10px; /* Space from right edge of subtitle area */
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    color: white;
-    cursor: pointer;
-    z-index: 1; /* Above text if needed */
-}
-
-.fullscreen-subtitle.hidden .toggle-subtitle-btn {
-    right: 0; /* Center icon when subtitle is hidden */
-    transform: translate(0, -50%); /* Adjust to center */
-}
-
-.toggle-subtitle-btn svg {
-    width: 24px;
-    height: 24px;
-}
-
-/* Navigation Buttons */
-.nav-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.3);
-    border: none;
-    color: white;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 2010;
-    transition: background 0.2s;
-}
-
-.nav-btn:hover {
-    background: rgba(0, 0, 0, 0.6);
-}
-
-.nav-btn.left {
-    left: 20px;
-}
-
-.nav-btn.right {
-    right: 20px;
-}
-
-@media (max-width: 600px) {
-    .nav-btn {
-        width: 40px;
-        height: 40px;
-        background: rgba(0, 0, 0, 0.5); /* More visible on mobile */
-    }
-    .nav-btn.left {
-        left: 10px;
-    }
-    .nav-btn.right {
-        right: 10px;
-    }
-    .nav-btn svg {
-        width: 24px;
-        height: 24px;
-    }
 }
