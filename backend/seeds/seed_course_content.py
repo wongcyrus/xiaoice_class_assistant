@@ -497,13 +497,20 @@ def main():
         logger.warning(f"No *_en_progress.json files found in {generate_dir}")
         return
 
-    for json_path in progress_files:
-        logger.info(f"Found base progress file: {json_path}")
-        
-        # Determine Base Name
-        # e.g. "cloudtech_en_progress.json" -> "cloudtech"
-        filename = os.path.basename(json_path)
+    for original_json_path in progress_files:
+        # Determine Base Name (always from the original standard file)
+        filename = os.path.basename(original_json_path)
         base_name = filename.replace("_en_progress.json", "")
+
+        # Check for refined version
+        refined_path = original_json_path.replace("_en_progress.json", "_en_progress_refined.json")
+        if os.path.exists(refined_path):
+            logger.info(f"Found base progress file: {original_json_path}")
+            logger.info(f"✅ Found refined progress file: {refined_path}. Using it instead.")
+            json_path = refined_path
+        else:
+            logger.info(f"Found base progress file: {original_json_path}")
+            json_path = original_json_path
         
         # Find matching PPT
         ppt_candidates = [
