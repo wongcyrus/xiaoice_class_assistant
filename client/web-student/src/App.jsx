@@ -75,7 +75,7 @@ const FullScreenSlide = ({ slideUrl, text, onClose, onNext, onPrev, hasNext, has
 
             <div className="fullscreen-content" onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}>
                 {slideUrl ? (
-                    <img 
+                                                                    <img
                         src={slideUrl} 
                         alt="Presentation Slide"
                         className="fullscreen-image" 
@@ -216,13 +216,25 @@ function App() {
   useEffect(() => {
       if (!isReady) return;
       
+      console.log("Fetching presentation list for course:", courseId);
       const pptCollection = collection(db, "presentation_broadcast", courseId, "presentations");
       const unsubscribe = onSnapshot(pptCollection, (snapshot) => {
           const ppts = snapshot.docs.map(doc => doc.id);
+          console.log("Presentation list fetched:", ppts);
           setPresentationList(ppts);
+      }, (error) => {
+          console.error("Error fetching presentation list:", error);
       });
       return () => unsubscribe();
   }, [courseId, isReady]);
+
+  // --- 1c. Auto-select first presentation if none selected ---
+  useEffect(() => {
+      if (!viewingPptId && presentationList.length > 0) {
+          console.log("[DEBUG] Auto-selecting first presentation:", presentationList[0]);
+          setViewingPptId(presentationList[0]);
+      }
+  }, [presentationList, viewingPptId]);
 
   // --- 2. Sync Logic: Keep viewing pointers in sync with live if isLiveMode ---
   useEffect(() => {
@@ -236,24 +248,39 @@ function App() {
   useEffect(() => {
       if (!isReady || !viewingPptId) return;
       
-      const basePath = `presentation_broadcast/${courseId}/presentations`;
-      console.log("Fetching slide list from:", basePath, viewingPptId);
-          
-      const slidesCol = collection(db, basePath, viewingPptId, "slides");
-      
-      const unsubscribe = onSnapshot(slidesCol, (snapshot) => {
-          console.log("Slide list snapshot size:", snapshot.size);
-          // Assuming ids are numeric strings "1", "2", etc.
-          const ids = snapshot.docs
-              .map(d => parseInt(d.id, 10))
-              .filter(n => !isNaN(n))
-              .sort((a, b) => a - b);
-          setSlideList(ids);
-      }, (error) => {
-          console.error("Error fetching slide list:", error);
-      });
+      console.log(`[DEBUG] Fetching slide list. Course: "${courseId}", PPT: "${viewingPptId}" (len: ${viewingPptId.length})`);
+      console.log(`[DEBUG] PPT ID Char Codes: ${viewingPptId.split('').map(c => c.charCodeAt(0)).join(',')}`);
 
-      return () => unsubscribe();
+      // Step-by-step reference construction for debugging/safety
+      try {
+          const rootRef = collection(db, "presentation_broadcast");
+          const courseRef = doc(rootRef, courseId);
+          const pptsRef = collection(courseRef, "presentations");
+          const pptRef = doc(pptsRef, viewingPptId);
+          const slidesCol = collection(pptRef, "slides");
+
+          console.log(`[DEBUG] Resolved Path: ${slidesCol.path}`);
+
+          const unsubscribe = onSnapshot(slidesCol, (snapshot) => {
+              console.log(`[DEBUG] Slide list snapshot received. Size: ${snapshot.size}`);
+              
+              const rawIds = snapshot.docs.map(d => d.id);
+              console.log("[DEBUG] Raw Slide IDs:", rawIds);
+    
+              const ids = rawIds
+                  .map(id => parseInt(id, 10))
+                  .filter(n => !isNaN(n))
+                  .sort((a, b) => a - b);
+              console.log("[DEBUG] Parsed Slide IDs:", ids);
+              setSlideList(ids);
+          }, (error) => {
+              console.error("[DEBUG] Error fetching slide list:", error);
+          });
+    
+          return () => unsubscribe();
+      } catch (err) {
+          console.error("[DEBUG] Error constructing refs:", err);
+      }
   }, [courseId, viewingPptId, isReady, isLiveMode]);
 
   // --- 3b. Auto-select first slide when switching presentations ---
@@ -274,14 +301,31 @@ function App() {
           return;
       }
 
-      console.log("Fetching slide:", viewingPptId, viewingSlideId);
+      console.log(`[DEBUG] Fetching single slide. PPT: "${viewingPptId}", Slide: "${viewingSlideId}"`);
       const basePath = `presentation_broadcast/${courseId}/presentations`;
 
       const slideRef = doc(db, basePath, viewingPptId, "slides", String(viewingSlideId));
       const unsubscribe = onSnapshot(slideRef, (docSnapshot) => {
-          console.log("Slide snapshot:", docSnapshot.exists(), docSnapshot.data());
+          console.log(`[DEBUG] Single slide snapshot for #${viewingSlideId}: exists=${docSnapshot.exists()}`);
           if (docSnapshot.exists()) {
-              setSlideData(docSnapshot.data());
+              const data = docSnapshot.data();
+              setSlideData(data);
+
+              // Update supported languages from the slide data if available
+              if (data.languages) {
+                  const langs = Object.keys(data.languages);
+                  if (langs.length > 0) {
+                      // Only update if significantly different to avoid loops, or just set it
+                      // Ideally, we merge or prioritize. For now, if we are viewing this slide, 
+                      // these are the langs we can see.
+                      setSupportedLangs(langs);
+                      
+                      // Ensure current selection is valid
+                      if (!langs.includes(viewLang)) setViewLang(langs[0]);
+                      if (!langs.includes(listenLang)) setListenLang(langs[0]);
+                  }
+              }
+
           } else {
               // If doc missing (maybe audio only update?), try to fallback to liveData if we are live
               if (isLiveMode && String(viewingSlideId) === String(liveSlideId)) {
