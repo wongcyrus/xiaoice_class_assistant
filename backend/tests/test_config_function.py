@@ -77,13 +77,14 @@ class TestConfigFunction(unittest.TestCase):
         config_data = args[0]
         
         expected_messages = {
-            "en": "Hello English",
-            "zh": "Hello Chinese"
+            "en": {"text": "Hello English"},
+            "zh": {"text": "Hello Chinese"}
         }
         self.assertEqual(config_data['presentation_messages'], expected_messages)
 
+    @patch('main.get_cached_presentation_message')
     @patch('main.firestore.Client')
-    def test_fallback_to_context(self, mock_firestore_client):
+    def test_fallback_to_context(self, mock_firestore_client, mock_get_cached_presentation_message):
         # Setup
         request_json = {
             "presentation_messages": {},
@@ -91,19 +92,22 @@ class TestConfigFunction(unittest.TestCase):
             "context": "Fallback Context"
         }
         self.mock_request.get_json.return_value = request_json
-        
+
+        mock_get_cached_presentation_message.return_value = (None, None)
+
         mock_db = MagicMock()
         mock_firestore_client.return_value = mock_db
         mock_doc_ref = MagicMock()
         mock_db.collection.return_value.document.return_value = mock_doc_ref
-        
+
         # Execute
         config(self.mock_request)
-        
+
         # Verify
         args, _ = mock_doc_ref.set.call_args
         config_data = args[0]
-        self.assertEqual(config_data['presentation_messages'], {"en": "Fallback Context"})
+        expected_messages = {"en-US": {"text": "Fallback Context"}}
+        self.assertEqual(config_data['presentation_messages'], expected_messages)
 
     @patch('main.firestore.Client')
     def test_existing_presentation_messages_not_overwritten(self, mock_firestore_client):
@@ -130,4 +134,4 @@ class TestConfigFunction(unittest.TestCase):
         args, _ = mock_doc_ref.set.call_args
         config_data = args[0]
         # Should stay as provided
-        self.assertEqual(config_data['presentation_messages'], {"fr": "Bonjour"})
+        self.assertEqual(config_data['presentation_messages'], latest_languages)

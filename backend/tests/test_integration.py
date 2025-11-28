@@ -39,6 +39,49 @@ def test_welcome_endpoint(api_url, auth_headers, api_key):
     data = response.json()
     assert data.get("replyText") == test_msg
 
+def test_welcome_endpoint_presentation_messages(api_url, auth_headers, api_key):
+    """Test the /api/welcome endpoint when in presentation context and using presentation_messages."""
+    if not api_key:
+        pytest.skip("API key not found")
+
+    # 1. Update Config with presentation messages
+    endpoint_config = f"{api_url}/api/config"
+    random_id = str(uuid.uuid4())[:8]
+    test_presentation_text = f"PRESENTATION_TEXT_{random_id}"
+    test_audio_url = f"https://example.com/audio_{random_id}.mp3"
+    
+    config_payload = {
+        "presentation_messages": {
+            "en-US": {
+                "text": test_presentation_text,
+                "audio_url": test_audio_url
+            }
+        }
+    }
+    
+    headers_conf = auth_headers(config_payload)
+    resp_conf = requests.post(f"{endpoint_config}?key={api_key}", data=json.dumps(config_payload, separators=(',', ':')), headers=headers_conf, timeout=10)
+    assert resp_conf.status_code == 200, f"Config update failed: {resp_conf.text}"
+    
+    time.sleep(2)
+
+    # 2. Verify Welcome in presentation mode
+    endpoint = f"{api_url}/api/welcome"
+    payload = {
+        "traceId": str(uuid.uuid4()),
+        "sessionId": str(uuid.uuid4()),
+        "languageCode": "en-US",
+        "userParams": "presenter-123-presentation" # Trigger is_presentation=True
+    }
+    headers = auth_headers(payload)
+    
+    response = requests.post(endpoint, data=json.dumps(payload, separators=(',', ':')), headers=headers, timeout=10)
+    
+    assert response.status_code == 200, f"Welcome (presentation) failed: {response.text}"
+    data = response.json()
+    assert data.get("replyText") == test_presentation_text
+    assert "replyAudioUrl" not in data # Assert audio_url is NOT returned
+
 def test_goodbye_endpoint(api_url, auth_headers, api_key):
     """Test the /api/goodbye endpoint with dynamic config update."""
     if not api_key:
