@@ -549,16 +549,25 @@ def main():
             suffix = LANG_PROGRESS_SUFFIX_MAP.get(lang, lang)
             if suffix:
                 # Try to find specific progress file for this language
-                lang_prog_file = os.path.join(generate_dir, f"{base_name}_{suffix}_progress.json")
-                if os.path.exists(lang_prog_file):
-                    logger.info(f"Loading pre-generated text for {lang} from {os.path.basename(lang_prog_file)}")
+                original_lang_path = os.path.join(generate_dir, f"{base_name}_{suffix}_progress.json")
+                refined_lang_path = os.path.join(generate_dir, f"{base_name}_{suffix}_progress_refined.json")
+                
+                lang_prog_file = None
+                if os.path.exists(refined_lang_path):
+                    logger.info(f"✅ Found refined progress file for {lang}: {os.path.basename(refined_lang_path)}")
+                    lang_prog_file = refined_lang_path
+                elif os.path.exists(original_lang_path):
+                    logger.info(f"Loading pre-generated text for {lang} from {os.path.basename(original_lang_path)}")
+                    lang_prog_file = original_lang_path
+                
+                if lang_prog_file:
                     notes = load_notes_for_language(lang_prog_file, lang)
                     for idx, text in notes.items():
                         if idx not in slide_notes_map:
                             slide_notes_map[idx] = {}
                         slide_notes_map[idx][lang] = text
                 else:
-                    logger.info(f"No progress file found for {lang} ({lang_prog_file})")
+                    logger.info(f"No progress file found for {lang} ({original_lang_path})")
 
         # Process slides
         for slide in slides_structure:
