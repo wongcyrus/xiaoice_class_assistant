@@ -4,6 +4,7 @@ import os
 import sys
 import functions_framework
 from google.cloud import firestore
+from firestore_utils import get_cached_presentation_message
 
 _level_name = os.environ.get("LOG_LEVEL", "DEBUG").upper()
 _level = getattr(logging, _level_name, logging.DEBUG)
@@ -41,9 +42,41 @@ def config(request):
     try:
         db = firestore.Client(database="langbridge")
 
+        # 1. Extract & Validate Inputs
+        course_id = request_json.get("courseId")
+        ppt_filename = request_json.get("ppt_filename")
+        page_number = request_json.get("page_number")
+        latest_languages = request_json.get("latest_languages")
+        context = request_json.get("context")
+
+        # If latest_languages is missing but we have context (e.g. from VBA client),
+        # attempt to rehydrate from cache.
+        if not latest_languages and context:
+            latest_languages = {}
+            # Use default languages for rehydration
+            target_langs = ["en-US", "zh-CN", "yue-HK"]
+            
+            logger.info(f"Rehydrating from cache for languages: {target_langs}")
+            for lang in target_langs:
+                msg, audio_url = get_cached_presentation_message(lang, context)
+                if msg:
+                    lang_data = {"text": msg}
+                    if audio_url:
+                        lang_data["audio_url"] = audio_url
+                    latest_languages[lang] = lang_data
+            
+            # Fallback if cache completely empty (at least provide English context)
+            if not latest_languages:
+                 latest_languages = {"en": {"text": context}}
+        
         # Update general config in Backend Firestore (langbridge_config)
+        # If presentation_messages is not provided but context is, use context for 'en'
+        backend_presentation_messages = request_json.get("presentation_messages", {})
+        if not backend_presentation_messages and context:
+            backend_presentation_messages = {"en": context}
+
         config_data = {
-            "presentation_messages": request_json.get("presentation_messages", {}),
+            "presentation_messages": backend_presentation_messages,
             "welcome_messages": request_json.get("welcome_messages", {}),
             "goodbye_messages": request_json.get("goodbye_messages", {}),
             "recommended_questions": request_json.get(
@@ -60,12 +93,6 @@ def config(request):
         # --- Restore Client Broadcast Logic for Live Slide ---
         # This part ensures the web-student client can still track the live slide
         # based on data sent to this endpoint.
-
-        # 1. Extract & Validate Inputs
-        course_id = request_json.get("courseId")
-        ppt_filename = request_json.get("ppt_filename")
-        page_number = request_json.get("page_number")
-        latest_languages = request_json.get("latest_languages")
 
         if not (course_id and ppt_filename and page_number is not None and latest_languages):
             logger.info(

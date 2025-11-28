@@ -145,16 +145,20 @@ function App() {
   const audioRef = useRef(new Audio());
   const lastPlayedHash = useRef(null);
 
-  const LANGUAGE_NAMES = {
-    "en": "English",
-    "zh": "Chinese (中文)",
-    "yue-HK": "Cantonese (香港)",
-    "es": "Spanish (Español)",
-    "ja": "Japanese (日本語)",
-    "ko": "Korean (한국어)"
+  const AUDIO_LANGUAGE_NAMES = {
+    "en-US": "English",
+    "zh-CN": "普通話",
+    "yue-HK": "廣東話"
   };
 
-  const getLangName = (code) => LANGUAGE_NAMES[code] || code;
+  const DISPLAY_LANGUAGE_NAMES = {
+    "en-US": "English",
+    "zh-CN": "中文简体",
+    "yue-HK": "中文繁體"
+  };
+
+  const getTextLangName = (code) => DISPLAY_LANGUAGE_NAMES[code] || code;
+  const getAudioLangName = (code) => AUDIO_LANGUAGE_NAMES[code] || code;
 
   // Helper to extract data for specific language
   const getLangContent = (languagesMap, langCode) => {
@@ -414,15 +418,12 @@ function App() {
         <div className="controls">
             <div className="status" style={{ color: status.color }}>{status.text}</div>
             <div style={{display: 'flex', gap: '8px'}}>
-                {/* View Language */}
-                <div style={{position: 'relative'}} title="Text Language">
-                    <span style={{position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', pointerEvents: 'none'}}>👁️</span>
                     <select 
                         value={viewLang} 
                         onChange={(e) => setViewLang(e.target.value)}
                         style={{paddingLeft: '28px'}}
                     >
-                        {supportedLangs.map(lang => <option key={lang} value={lang}>{getLangName(lang)}</option>)}
+                        {supportedLangs.map(lang => <option key={lang} value={lang}>{getTextLangName(lang)}</option>)}
                     </select>
                 </div>
                 {/* Listen Language */}
@@ -433,13 +434,11 @@ function App() {
                         onChange={(e) => setListenLang(e.target.value)}
                         style={{paddingLeft: '28px'}}
                     >
-                        {supportedLangs.map(lang => <option key={lang} value={lang}>{getLangName(lang)}</option>)}
+                        {supportedLangs.map(lang => <option key={lang} value={lang}>{getAudioLangName(lang)}</option>)}
                     </select>
-                </div>
-            </div>
-        </div>
-      </header>
-      
+                                </div>
+                            </div>
+                        </header>      
       <div className="sub-header">
         <div className="nav-controls" style={{display:'flex', alignItems:'center', gap:'10px'}}>
             {/* Presentation Selector */}
