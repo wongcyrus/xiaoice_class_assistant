@@ -1,8 +1,5 @@
 functions-framework==3.*
 google-cloud-firestore==2.*
-google-cloud-aiplatform==1.*
+# Kept for potential implicit dependencies or minimal footprint
 firebase-admin==6.*
 python-dotenv==1.*
-google-cloud-texttospeech==2.*
-google-cloud-storage==2.*
-google-adk

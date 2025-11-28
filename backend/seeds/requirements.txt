@@ -1,0 +1,10 @@
+google-cloud-storage
+google-cloud-firestore
+google-cloud-texttospeech
+google-genai
+google-adk
+python-dotenv
+openpyxl
+python-pptx
+pandas
+google-auth
