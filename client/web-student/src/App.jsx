@@ -423,7 +423,7 @@ function App() {
   if (!isReady) {
       return (
           <div className="splash-screen">
-              <h1>LangBride</h1>
+              <h1>LangBridge</h1>
               <button onClick={() => setIsReady(true)}>Join Class</button>
               <p className="attribution">Developed by Higher Diploma in Cloud and Data Centre Administration at HKIIT</p>
           </div>
@@ -434,8 +434,8 @@ function App() {
   const visualUrl = viewingContentView?.slide_link || (isLiveMode && String(viewingSlideId) === String(liveSlideId) ? liveContentView?.slide_link : null);
   
   // Text priority: Viewing Slide text (if browsing) -> Live text (if live)
-  // This ensures text matches the visual slide and View Language
-  const displayText = (isLiveMode ? liveContentView?.text : viewingContentView?.text) || "(Translating...)";
+  // This ensures text matches the audio language
+  const displayText = (isLiveMode ? liveContentAudio?.text : viewingContentAudio?.text) || "(Translating...)";
 
   const currentNum = parseInt(viewingSlideId, 10);
   const hasPrev = slideList.length > 0 && slideList.indexOf(currentNum) > 0;
