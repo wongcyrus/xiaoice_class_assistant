@@ -387,11 +387,11 @@ def process_slide_locally(
         logger.warning("Skipping broadcast (no languages or no client_project_id)")
 
 
-# --- DEMO DATA ---
+# --- DEFAULT DATA ---
 
-DEMO_COURSE_ID = "showcase"
-DEMO_COURSE_TITLE = "Showcase"
-DEMO_LANGUAGES = ["en-US", "zh-CN", "yue-HK"]
+DEFAULT_COURSE_ID = "showcase"
+DEFAULT_COURSE_TITLE = "Showcase"
+DEFAULT_LANGUAGES = ["en-US", "zh-CN", "yue-HK"]
 
 # Mapping for visual folder suffixes
 LANG_VISUAL_SUFFIX_MAP = {
@@ -408,33 +408,47 @@ LANG_PROGRESS_SUFFIX_MAP = {
     "yue-HK": "yue-HK"
 }
 
+# Default Voice Configs
+DEFAULT_VOICE_CONFIGS = {
+    "en-US": {"name": "en-US-Neural2-F", "gender": "FEMALE"},
+    "zh-CN": {"name": "cmn-CN-Chirp3-HD-Achernar", "gender": "FEMALE"},
+    "yue-HK": {"name": "yue-HK-Standard-A", "gender": "FEMALE"}
+}
+
 # -----------------
 
-def create_demo_course():
-    """Creates the demo course in Firestore using admin tools."""
-    logger.info(f"Creating demo course: {DEMO_COURSE_ID}...")
+def ensure_course_exists(course_id, course_title, languages):
+    """Creates or updates the course in Firestore using admin tools."""
+    logger.info(f"Ensuring course exists: {course_id} ({course_title})...")
     
-    voice_configs = {
-        "en-US": {"name": "en-US-Neural2-F", "gender": "FEMALE"},
-        "zh-CN": {"name": "cmn-CN-Chirp3-HD-Achernar", "gender": "FEMALE"},
-        "yue-HK": {"name": "yue-HK-Standard-A", "gender": "FEMALE"}
-    }
-    
+    # Construct voice configs
+    voice_configs = {}
+    for lang in languages:
+        if lang in DEFAULT_VOICE_CONFIGS:
+            voice_configs[lang] = DEFAULT_VOICE_CONFIGS[lang]
+        else:
+            logger.warning(f"No default voice config for {lang}, using en-US default as placeholder")
+            voice_configs[lang] = {"name": "en-US-Neural2-F", "gender": "FEMALE"}
+
     try:
         create_or_update_course(
-            DEMO_COURSE_ID, 
-            DEMO_COURSE_TITLE, 
-            DEMO_LANGUAGES, 
+            course_id, 
+            course_title, 
+            languages, 
             voice_configs
         )
-        logger.info("✅ Course created successfully.")
+        logger.info("✅ Course created/updated successfully.")
     except Exception as e:
         logger.error(f"❌ Failed to create course: {e}")
         sys.exit(1)
 
 def main():
-    parser = argparse.ArgumentParser(description="Seed Demo Class and Generate Content Locally")
+    parser = argparse.ArgumentParser(description="Seed Class Content and Generate Content Locally")
     parser.add_argument("--skip-create", action="store_true", help="Skip creating the course")
+    parser.add_argument("--course-id", default=DEFAULT_COURSE_ID, help=f"Course ID (default: {DEFAULT_COURSE_ID})")
+    parser.add_argument("--course-title", default=DEFAULT_COURSE_TITLE, help=f"Course Title (default: {DEFAULT_COURSE_TITLE})")
+    parser.add_argument("--data-dir", default="generate", help="Directory containing generated content (relative to script or absolute)")
+    parser.add_argument("--languages", nargs="+", default=DEFAULT_LANGUAGES, help=f"List of languages (default: {' '.join(DEFAULT_LANGUAGES)})")
     
     args = parser.parse_args()
     
@@ -454,18 +468,26 @@ def main():
     logger.info(f"Backend Project: {backend_project_id}")
     logger.info(f"Client Project: {client_project_id}")
     logger.info(f"Bucket: {bucket_name}")
+    logger.info(f"Course ID: {args.course_id}")
 
     # Ensure we use backend project for initial setup
     os.environ["GOOGLE_CLOUD_PROJECT"] = backend_project_id
 
     if not args.skip_create:
-        create_demo_course()
+        ensure_course_exists(args.course_id, args.course_title, args.languages)
     else:
         logger.info("Skipping course creation.")
         
-    # Find and process presentations
-    seeds_dir = os.path.dirname(os.path.abspath(__file__))
-    generate_dir = os.path.join(seeds_dir, "generate")
+    # Resolve generate directory
+    if os.path.isabs(args.data_dir):
+        generate_dir = args.data_dir
+    else:
+        seeds_dir = os.path.dirname(os.path.abspath(__file__))
+        generate_dir = os.path.join(seeds_dir, args.data_dir)
+    
+    if not os.path.exists(generate_dir):
+        logger.error(f"❌ Data directory not found: {generate_dir}")
+        sys.exit(1)
     
     # Find all base 'en' progress files to drive the loop
     progress_files = glob.glob(os.path.join(generate_dir, "*_en_progress.json"))
@@ -487,7 +509,7 @@ def main():
         ppt_candidates = [
             f"{base_name}_with_visuals.pptm",
             f"{base_name}_with_visuals.pptx",
-            f"{base_name}_en_with_visuals.pptm" 
+            f"{base_name}_en_with_visuals.pptm"
         ]
         
         ppt_path = None
@@ -515,8 +537,9 @@ def main():
         # Map: { slide_index_str: { 'en-US': '...', 'zh-CN': '...' } } 
         slide_notes_map = {} 
         
-        for lang in DEMO_LANGUAGES:
-            suffix = LANG_PROGRESS_SUFFIX_MAP.get(lang)
+        for lang in args.languages:
+            # Fallback to language code if suffix map doesn't have it
+            suffix = LANG_PROGRESS_SUFFIX_MAP.get(lang, lang)
             if suffix:
                 # Try to find specific progress file for this language
                 lang_prog_file = os.path.join(generate_dir, f"{base_name}_{suffix}_progress.json")
@@ -546,7 +569,8 @@ def main():
                 base_search_name = base_name
                 image_filename = f"slide_{slide_num}_reimagined.png"
                 
-                for lang_code, suffix in LANG_VISUAL_SUFFIX_MAP.items():
+                for lang_code in args.languages:
+                    suffix = LANG_VISUAL_SUFFIX_MAP.get(lang_code, lang_code)
                     visuals_dir_candidates = [
                         os.path.join(generate_dir, f"{base_search_name}_{suffix}_visuals"),
                         os.path.join(generate_dir, f"{base_search_name}_visuals"),
@@ -572,8 +596,8 @@ def main():
                 slide_number=slide_num,
                 context=context,
                 ppt_filename=ppt_filename,
-                course_id=DEMO_COURSE_ID,
-                languages=DEMO_LANGUAGES,
+                course_id=args.course_id,
+                languages=args.languages,
                 bucket_name=bucket_name,
                 backend_project_id=backend_project_id,
                 client_project_id=client_project_id,
@@ -593,7 +617,7 @@ def main():
                 project=client_project_id,
                 database="(default)"
             )
-            doc_id = DEMO_COURSE_ID
+            doc_id = args.course_id
             broadcast_ref = broadcast_db.collection('presentation_broadcast').document(doc_id)
             
             # Normalize for ID (Consistency with process_slide_locally)
@@ -617,7 +641,7 @@ def main():
             # Fetch 'latest_languages' from the registry we just populated
             # so the live view has data immediately
             slide_ref = broadcast_ref.collection('presentations').document(safe_ppt_id).collection('slides').document(first_slide)
-            slide_snap = slide_ref.get()
+            slide_snap = slide_ref.get() 
             
             latest_languages = {}
             if slide_snap.exists:
